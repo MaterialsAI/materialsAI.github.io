@@ -1,7 +1,7 @@
 ---
 name: Kumar Ankit
 position: Assistant Professor, ASU
-link: https://isearch.asu.edu/profile/3173066
+link: "isearch.asu.edu/profile/3173066"
 categories: faculty
 image: kankit.png
 project: "solidification, solid-state transformations and grain coarsening in multicomponent alloys"

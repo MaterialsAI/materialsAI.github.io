@@ -1,7 +1,7 @@
 ---
 name: Yi Ren
 position: Assistant Professor, ASU
-link: semte.engineering.asu.edu/ren-yi/
+link: "designinformaticslab.github.io/"
 categories: faculty
 image: yren32.png
 project: "Optimization, Machine Learning"
