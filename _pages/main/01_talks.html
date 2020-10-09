@@ -8,35 +8,36 @@ category: header
 ---
 
 <div class="topic">
-    <b>Future Talks</b><br>
+<!--    <b>Future Talks</b><br>-->
     {% for post in site.posts %}
         {% if post.categories contains 'talk-current' %}
             <div class="talk-container">
 <!--                <img src="{{ site.url }}/{{ post.image }}">-->
                 <div class="talk-abstract">
                     <b>Time:</b> {{ post.talk_date }}<br>
-                    <b>Title:</b> <a href="{{ post.url }}">{{ post.title }}</a><br>
-                    <b>Speaker:</b> <a href="{{ post.speaker_url }}">
+                    <b>Title: <a href="{{ post.url }}">{{ post.title }}</a></b><br>
+                    <b>Speaker:</b> Dr. <a href="{{ post.speaker_url }}">
                     {{ post.speaker_name }}</a>, {{ post.speaker_school }}<br>
                     <b>Zoom:</b> {{ post.zoom}} <br>
 <!--                    <b>Abstract:</b> {{ post.abstract }}-->
                 </div>
 
             </div>
+            <br>
         {% endif %}
     {% endfor %}
 </div>
-<div class="topic">
-    <b>Past Talks</b><br>
-    {% for post in site.posts %}
-        {% if post.categories contains 'talk-past' %}
-            <div id="talk">
-                <img src="{{ site.url }}/{{ post.image }}"><br>
-                <a href="{{ post.url }}">{{ post.title }}</a>
-                ({{ post.date }})
-                <a href="{{ post.speaker_url }}">{{ post.speaker_name }}, {{ post.speaker_school }}</a>
-            </div>
-        {% endif %}
-    {% endfor %}
-</div>
+<!--<div class="topic">-->
+<!--    <b>Past Talks</b><br>-->
+<!--    {% for post in site.posts %}-->
+<!--        {% if post.categories contains 'talk-past' %}-->
+<!--            <div id="talk">-->
+<!--                <img src="{{ site.url }}/{{ post.image }}"><br>-->
+<!--                <a href="{{ post.url }}">{{ post.title }}</a>-->
+<!--                ({{ post.date }})-->
+<!--                <a href="{{ post.speaker_url }}">{{ post.speaker_name }}, {{ post.speaker_school }}</a>-->
+<!--            </div>-->
+<!--        {% endif %}-->
+<!--    {% endfor %}-->
+<!--</div>-->
 

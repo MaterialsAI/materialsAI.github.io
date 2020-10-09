@@ -2,7 +2,7 @@
 layout: talk
 title:  "Quantitative Structure-Property Relationship Modeling Using a Meshfree Approach"
 speaker_name: "Hailong Chen" 
-speaker_url: http://megroup.engr.uky.edu/
+speaker_url: "megroup.engr.uky.edu/"
 speaker_school: "University of Kentucky"
 speaker_bio: "Dr. Hailong Chen is a tenure-track Assistant Professor at the University of Kentucky (UK) in the Mechanical
              Engineering Department. Since joining UK, Dr. Chen and his research group have been focusing on developing
