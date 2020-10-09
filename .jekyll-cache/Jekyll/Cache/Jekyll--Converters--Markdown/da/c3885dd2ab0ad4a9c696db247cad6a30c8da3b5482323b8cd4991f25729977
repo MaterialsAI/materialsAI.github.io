@@ -1,0 +1,272 @@
+I"�<h2 id="mee-342-principles-of-mechanical-design--spring-2018">MEE 342 Principles of Mechanical Design | Spring 2018</h2>
+
+<p><strong>Faculty</strong>: Max Yi Ren</p>
+
+<p><strong>Email</strong>: yiren@asu.edu</p>
+
+<p><strong>Office</strong>: GWC464</p>
+
+<p><strong>Location &amp; Time</strong>: SS105, M/W 3:05pm-4:20pm</p>
+
+<p><strong>Office hours</strong>: M/W 1:00pm-2:50pm in GWC464, or by appointment</p>
+
+<hr />
+
+<h3 id="course-objectives">Course Objectives</h3>
+
+<ol>
+  <li>Basics of machine design, design process, mechanics of materials, prevention of failure
+for static and fatigue loading.</li>
+  <li>Practical approach to analysis and design of mechanical components with real-world
+examples and applications.</li>
+  <li>Link design and analysis (understanding the concept of demand vs. capacity).</li>
+</ol>
+
+<hr />
+
+<h3 id="prerequisites">Prerequisites</h3>
+
+<p>MAE 212, MAE 213, MEE 322 (Free-body diagrams, reaction forces, shear forces, torsion and 
+bending moments, stress analysis, stress distribution, 2D-3D stress transformations, failure theories)</p>
+
+<hr />
+
+<h3 id="textbook">Textbook</h3>
+
+<p>R.G., Budynas and J.K. Nisbett, Shigley’s Mechanical Engineering Design, 10th Edition,
+McGraw-Hill, 2014. ISBN: 978-0-07-339820-9.</p>
+
+<hr />
+
+<h3 id="workload-and-grading">Workload and grading</h3>
+
+<p>There are 5 homework assignments, 
+2 mid-term exams, and an individual project.</p>
+
+<ul>
+  <li>Homework (8%*5)</li>
+  <li>Project report (20%)</li>
+  <li>Exams (20%*2)</li>
+</ul>
+
+<hr />
+
+<h3 id="course-schedule">Course schedule</h3>
+
+<ul>
+  <li>This course schedule is subject to change as of Jan. 2 2018.</li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Topic</th>
+      <th>Assignment</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Jan 8 (M)</td>
+      <td>Quiz 1</td>
+      <td> </td>
+      <td>Quiz will be posted on BB. Score does not count towards your final grade</td>
+    </tr>
+    <tr>
+      <td>Jan 10 (W)</td>
+      <td>Review 1: Materials strength, stiffness, hardness, impact, temperature, etc.</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Jan 15 (M)</td>
+      <td><em>Martin Luther King Jr. Holiday</em></td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Jan 17 (W)</td>
+      <td>Review 2: Load and stress analysis</td>
+      <td>HW 1 in</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Jan 22 (M)</td>
+      <td>Review 3: Deformation calculation</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Jan 24 (W)</td>
+      <td>Review 4: Deformation calculation cont., compression and buckling</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Jan 29 (M)</td>
+      <td>Finite element analysis, topology optimization, and 3D printing</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Jan 31 (W)</td>
+      <td>Failure from static loading 1</td>
+      <td>HW 1 due, HW 2 in</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Feb 5 (M)</td>
+      <td>Failure from static loading 2</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Feb 7  (W)</td>
+      <td>Failure from static loading 3</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Feb 12 (M)</td>
+      <td>Linear elastic fracture mechanics</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Feb 14 (W)</td>
+      <td>Fatigue Failure 1</td>
+      <td>HW 2 due, HW 3 in</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Feb 19 (M)</td>
+      <td>Fatigue Failure 2</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Feb 21 (W)</td>
+      <td>Fatigue Failure 3</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Feb 26 (M)</td>
+      <td>Review 1</td>
+      <td>HW 3 due</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Feb 28 (W)</td>
+      <td><strong>Mid-term 1</strong></td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Mar 5 (M)</td>
+      <td><em>Spring Break - Classes Excused</em></td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Mar 7 (W)</td>
+      <td><em>Spring Break - Classes Excused</em></td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Mar 12 (M)</td>
+      <td>Design of shafts</td>
+      <td>HW4 in</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Mar 14 (W)</td>
+      <td>Design of shafts 2</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Mar 19 (M)</td>
+      <td>Rolling-contact bearings</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Mar 21 (W)</td>
+      <td>Rolling-contact bearings 2</td>
+      <td> </td>
+      <td>Preliminary report due</td>
+    </tr>
+    <tr>
+      <td>Mar 26 (M)</td>
+      <td>Gears</td>
+      <td>HW 4 due, HW 5 in</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Mar 28 (W)</td>
+      <td>Gears 2</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Apr 2 (M)</td>
+      <td>Gears 3</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Apr 4 (W)</td>
+      <td>Gears 4</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Apr 9 (M)</td>
+      <td>Spur and helical gears</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Apr 11 (W)</td>
+      <td>Springs</td>
+      <td> </td>
+      <td>HW 5 due</td>
+    </tr>
+    <tr>
+      <td>Apr 16 (M)</td>
+      <td>Impact loadings</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Apr 18 (W)</td>
+      <td>Impact loadings 2</td>
+      <td> </td>
+      <td>Progress report due</td>
+    </tr>
+    <tr>
+      <td>Apr 23 (M)</td>
+      <td>Review 2</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Apr 25 (W)</td>
+      <td><strong>Mid-term 2</strong></td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Apr 27 (F)</td>
+      <td><strong>Final report due</strong></td>
+      <td> </td>
+      <td> </td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+:ET

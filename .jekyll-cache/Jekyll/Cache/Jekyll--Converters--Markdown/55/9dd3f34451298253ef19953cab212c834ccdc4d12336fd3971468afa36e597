@@ -1,0 +1,190 @@
+I"73<h1 id="iot---soil-moisture-sensor-hookup-guide---mae540-2017-team-2">IoT - Soil Moisture Sensor hookup guide - MAE540-2017 Team 2</h1>
+
+<h2 id="introduction">INTRODUCTION</h2>
+<p>The soil moisture sensor is a simple device for measuring the moisture level in soil and similar materials. The soil moisture sensor is straight forward to use. The two large exposed pads function as probes for the sensor, together acting as a variable resistor. The more water that is in the soil or any other material means the better the conductivity between the pads will be and will result in a lower resistance, and a higher SIG out. To get the soil moisture sensor functioning we need to connect the VCC and GND pins to your Arduino-based device and you will receive a SIG out which will depend on the amount of water in the soil. A 3-pin jumper wire assembly is soldered onto the sensor for easy wiring.
+Use the Soil Moisture Sensor to:</p>
+<ul>
+  <li>Measure the loss of moisture over time due to evaporation and plant uptake.</li>
+  <li>Evaluate optimum soil moisture contents for various species of plants.</li>
+  <li>Monitor soil moisture content to control irrigation in greenhouses.</li>
+  <li>Enhance your Bottle Biology experiments.</li>
+</ul>
+
+<p><img src="/_images/tutorial_iot/moisture/sensor.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<h2 id="how-the-sensor-works">HOW THE SENSOR WORKS</h2>
+<p>The Soil Moisture Sensor uses capacitance to measure dielectric permittivity of the surrounding medium. In soil, dielectric permittivity is a function of the water content. The sensor creates a voltage proportional to the dielectric permittivity, and therefore the water content of the soil.</p>
+
+<p><img src="/_images/tutorial_iot/moisture/How the sensor works.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>The sensor averages the water content over the entire length of the sensor. There is a 2cm zone of influence with respect to the flat surface of the sensor, but it has little or no sensitivity at the extreme edges. The figure above shows the electromagnetic field lines along a cross-section of the sensor, illustrating the 2cm zone of influence.</p>
+
+<h2 id="application">APPLICATION</h2>
+<h3 id="agriculture">Agriculture</h3>
+<ul>
+  <li>Measuring soil moisture is important for agricultural applications to help farmers manage their irrigation systems efficiently. Knowing the requirements of soil moisture conditions for the fields, enables the farmers to use lesser water and increase the yield and quality of the crop.</li>
+</ul>
+
+<h3 id="landscape-irrigation">Landscape irrigation</h3>
+<ul>
+  <li>In urban and suburban areas, landscapes and residential lawns are using soil moisture sensors that interface with an irrigation controller.</li>
+</ul>
+
+<p>**	Connecting a soil moisture sensor to a simple irrigation clock will convert it into a “smart” irrigation controller that prevents irrigation cycles when the soil is already wet.</p>
+
+<ul>
+  <li>Golf courses are using soil moisture sensors to increase the efficiency of their irrigation systems to prevent over-watering and leaching of fertilizers and other chemicals into the ground.</li>
+</ul>
+
+<h3 id="research">Research</h3>
+<ul>
+  <li>Soil moisture sensors are used in numerous research applications, e.g. in agricultural science and horticulture including irrigation planning, climate research, or environmental science including solute transport studies and as auxiliary sensors for soil respiration measurements.</li>
+  <li>Simple sensors for gardeners</li>
+  <li>Relatively cheap and simple devices that do not require a power source are available for checking whether plants to ensure sufficient moisture for their survival.</li>
+</ul>
+
+<h2 id="item-list">ITEM LIST</h2>
+<p>You will need the following:</p>
+
+<ul>
+  <li>The SparkFun ESP8266 Thing board</li>
+  <li>FTDI Basic -3.3V</li>
+  <li>SparkFun Cerberus USB Cable</li>
+  <li>Soil Moisture Sensor</li>
+  <li>Jumper Wires and a Breadboard</li>
+  <li>Arduino stackable header</li>
+  <li>An Android/Apple smartphone and a computer</li>
+</ul>
+
+<h2 id="schematics-of-the-sensor">SCHEMATICS OF THE SENSOR</h2>
+<p><img src="/_images/tutorial_iot/moisture/schematics 1.JPG" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/moisture/schematics 2.JPG" alt="Drawing" style="height: 400px;" /></p>
+
+<h2 id="procedure">PROCEDURE</h2>
+<p>General procedure for using the Soil Moisture Sensor with ESP8266:</p>
+<ol>
+  <li>Connect the ESP8266 to the bread board. The program to setup the ESP8266 and connecting to the Wi-Fi is shown below, 
+<strong>Arduino code and installation guides</strong> 
+<strong>Software setup</strong></li>
+  <li>Download the Arduino IDE and install.</li>
+  <li>Open the Arduino IDE. Install ESP8266 Arduino Add-on:
+a. Go to File &gt; Preference, type http://arduino.esp8266.com/stable/package_esp8266com_index.json into the “Additional Board Manager URLs” text box. Hit OK.
+b. Then go to Tools &gt; Boards &gt; Boards Manager, search “esp8266”, and install it.
+c. Go to Tools &gt; Boards, select “ESP8266 Thing”. If you don’t see it, close and reopen the IDE.</li>
+  <li>On your smartphone, install “Blynk” and register.</li>
+  <li>Download the Blynk library. Unzip it and move it to %myDocuments%/Arduino/libraries (%myDocument% should be %your_user_name/documents% on Windows).</li>
+</ol>
+
+<h2 id="code">Code</h2>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+</pre></td><td class="code"><pre><span class="cp">#include &lt;Wire.h&gt;
+#include &lt;ESP8266WiFi.h&gt;
+#include &lt;BlynkSimpleEsp8266.h&gt;
+</span>
+<span class="kt">char</span> <span class="n">auth</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"******"</span><span class="p">;</span> <span class="c1">//authentication code received from Blynk  </span>
+<span class="kt">char</span> <span class="n">ssid</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"********"</span><span class="p">;</span> <span class="c1">//wifi name</span>
+<span class="kt">char</span> <span class="n">pass</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"********"</span><span class="p">;</span><span class="c1">//wifi password</span>
+<span class="kt">int</span> <span class="n">thresholdUp</span> <span class="o">=</span> <span class="o">***</span><span class="p">;</span> <span class="c1">//Minimum value below which blynk notifies by E-mail</span>
+<span class="kt">int</span> <span class="n">sensorPin</span> <span class="o">=</span> <span class="n">A0</span><span class="p">;</span>  <span class="c1">//output ADC pin</span>
+<span class="kt">void</span> <span class="nf">setup</span><span class="p">()</span>
+ <span class="p">{</span>
+   <span class="n">Blynk</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">ssid</span><span class="p">,</span> <span class="n">pass</span><span class="p">);</span>
+ <span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">loop</span><span class="p">()</span>
+<span class="p">{</span>
+ <span class="kt">int</span> <span class="n">sensorValue</span><span class="p">;</span>
+ <span class="n">sensorValue</span> <span class="o">=</span> <span class="n">analogRead</span><span class="p">(</span><span class="n">sensorPin</span><span class="p">);</span>
+ <span class="n">Blynk</span><span class="p">.</span><span class="n">run</span><span class="p">();</span>
+ <span class="k">if</span> <span class="p">(</span><span class="n">sensorValue</span> <span class="o">&lt;=</span> <span class="n">thresholdUp</span><span class="p">)</span> 
+ <span class="p">{</span> 
+   		<span class="n">Blynk</span><span class="p">.</span><span class="n">email</span><span class="p">(</span><span class="s">"See ur plant"</span><span class="p">,</span> <span class="s">"Needs watering"</span><span class="p">);</span> <span class="c1">// Displaying output message</span>
+ 	<span class="p">}</span>
+<span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<ol>
+  <li>Setting up the Blynk widgets, 
+<strong>Blynk Setup:</strong>
+The setup part in the Blynk app is straight-forward. It needs two widgets to function, they are:</li>
+  <li>Email widget</li>
+  <li>Value Display
+New project is created as shown below,</li>
+</ol>
+
+<p><img src="/_images/tutorial_iot/moisture/Project Created in blynk.jpg" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/moisture/Created Project.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>By swiping the screen on the new project window will open the widget window.</p>
+
+<p><img src="/_images/tutorial_iot/moisture/Widget_box.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>From that value display widget is selected. Name the input is mentioned as analog ADC0 pin. So, that the output of the pin is displayed directly.</p>
+<ol>
+  <li>Soil moisture sensor was properly soldered and connected to ESP8266 using jumper wires.</li>
+  <li>Setting up the sensor,
+<strong>Sensor Setup</strong>
+Follow the steps given below for testing the basic functionality of the board and the sensor.
+The Soil Moisture Sensor is very simple when it comes to hookup. You need to supply VCC and GND. We recommend not powering the sensor constantly to prevent oxidation of the probes. You will get a SIG out, which will be between almost VCC and GND, depending on the amount of water in the soil. The two probes are acting as a variable resistor - more water in the soil means better conductivity and results in a lower resistance and a higher SIG out. Your analog readings will vary depending on what voltage you use for Vcc as well as the resolution of your ADC pins.
+As for connecting the sensor to your circuit, we’ve given you a few different options. You can solder on a 3-pin JST Jumper Wire Assembly if you need to easily switch sensors on your project. This pairs nicely with our JST to Breadboard Jumper Connector.</li>
+</ol>
+
+<p><img src="/_images/tutorial_iot/moisture/Soil moisture sensor connected to ESP8266.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>Another option is to solder on a 3-pin 3.5mm Screw Pin Terminal for a slightly more robust connection.
+You can always solder some hookup wire straight to the sensor.
+<strong>Hooking Up the Sensor to Thing Board:</strong>
+The three jumpers in the sensor are connected as follows:
+VCC—–&gt;3V3
+GND—-&gt;GND
+SIG—-&gt;ADC
+The below figure illustrates the connected sensor and the board.</p>
+
+<h2 id="experiment">EXPERIMENT</h2>
+<ol>
+  <li>We have set the minimum threshold value to 250 in the program code.</li>
+  <li>Sensor was set based on the following instructions, 
+<strong>Positioning the Sensor</strong>
+The prongs should be oriented horizontally, but rotated onto their side (like a knife poised to cut food) so that water does not pool on the flat surface of the prongs. The horizontal orientation of the sensor ensures the measurement is made at a particular soil depth. The entire sensor can be placed vertically, but because soil moisture often varies by depth, this is not usually the desired orientation. To position the sensor, use a thin implement such as a trenching shovel to make a pilot hole in the soil. Place the sensor into the hole, making sure the entire length of the sensor is covered. Press down on the soil along either side of the sensor with your fingers. Continue to compact the soil around the sensor by pressing down on the soil with your fingers until you have made at least five passes along the sensor. This step is important, as the soil adjacent to the sensor surface has the strongest influence on the sensor reading.
+Removing the sensor 
+When removing the sensor from the soil, do not pull it out of the soil by the cable! Doing so may break internal connections and make the sensor unusable.</li>
+  <li>Experimental Cases</li>
+</ol>
+
+<p><img src="/_images/tutorial_iot/moisture/Experimental setup.JPG" alt="Drawing" style="height: 400px;" /></p>
+
+<p>Case 1 - Dry Soil
+In the first case the Sensor was positioned in dry soil. Since the moisture content of the soil was less than the minimum threshold, a notification to water the plant was emailed to the set ID every 15 seconds.</p>
+
+<p>Case 2 - Wet Soil
+In the second case the sensor was positioned in wet soil. The moisture content of the soil can be observed from the Blynk app.</p>
+<h2 id="observation">OBSERVATION</h2>
+<p>The sensor was used to monitor the moisture content in the soil. An alert was notified through E-mail when the moisture content of the soil dropped below the minimum threshold of 250 (Threshold can be set as per user requirement).</p>
+
+<p><img src="/_images/tutorial_iot/moisture/Email_peference.jpg" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/moisture/output_1.jpg" alt="Drawing" style="height: 400px;" /></p>
+:ET

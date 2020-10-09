@@ -1,0 +1,136 @@
+I"7<style type="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<h1 id="interest">Interest</h1>
+<p>by Max Yi Ren</p>
+
+<h2 id="disclaimer">Disclaimer</h2>
+<p>This lecture note is created based on existing materials from the <a href="http://ode.engin.umich.edu">ODE lab</a> at University of Michigan.</p>
+
+<p>Interest can be thought as the “rental charge” for the use of money.</p>
+
+<p>Simple interest:</p>
+
+<ul>
+  <li>Principal ($P$) = dollar value at the time given</li>
+  <li>(Discount) Rate ($i$) = interest earned per unit principal per unit time</li>
+  <li>Future value ($FV$) =  value at a future point</li>
+</ul>
+
+<p>Formulas:</p>
+
+<ul>
+  <li>One period: $FV = P + Pi = P(1+i)$</li>
+  <li>Multiple ($n$) periods: $FV = P(1+i)^n$</li>
+</ul>
+
+<h3 id="present-value">Present value</h3>
+<p>Future value can be converted into present value.</p>
+
+<p>Present value allows the evaluation of multiple value amounts
+arriving at different times to be equivalently valued at a given
+point in time.</p>
+
+<p>Present value $PV = FV/(1+i)^n$</p>
+
+<h3 id="series-compound-future-value">Series compound future value</h3>
+<p>Series of equal payments ($R$) given at regular time periods
+\(FV = [\frac{(1+i)^n-1}{i}]R\)</p>
+
+<p>Practice: Calculate the future value of $R = 5,000$ at the end of each year for 5 years at $6\%$.</p>
+
+<h3 id="series-present-value">Series present value</h3>
+<p>Series of equal payments ($R$) given at regular time periods</p>
+
+\[PV = [\frac{(1+i)^n-1}{i(1+i)^n}]R\]
+
+<p>Practice: Calculate the present value of $R = 5,000$ at the end of each year for 5 years at $6\%$.</p>
+
+<h3 id="gradient-series">Gradient series</h3>
+<p>$R$ now changes $g\%$ at the end of each year</p>
+
+<p>\(PV = [\frac{1-(1+g)^n(1+i)^{-n}}{i-g}]R\), when $g=i$, we have \(PV = \frac{nR}{1+i}\).</p>
+
+<h3 id="net-present-value">Net present value</h3>
+<p>With a series of $R$s.</p>
+
+<p>\(NPV = \sum_{t=0}^N \frac{R_t}{(1+i)^t}\), 
+where $R_t$ is the investment at time $t$.</p>
+
+<h3 id="using-excel-for-calculation">Using Excel for calculation</h3>
+
+<ul>
+  <li>Future value = FV(rate,nper,pmt,pv,type)</li>
+  <li>Present value = PV(rate,nper,pmt,fv,type)</li>
+  <li>Net present value = NPV(rate,value1,value2, …)</li>
+  <li>Non-uniform net present value = XNPV(rate,values,dates)</li>
+</ul>
+
+<h2 id="simple-investment-economics">Simple investment economics</h2>
+<p>How do we evaluate alternative financing and investment decisions for launching a new product?</p>
+
+<p>Investment economics or capital budgeting seeks to answer
+this question.</p>
+
+<ul>
+  <li>Net present value (NPV)</li>
+  <li>Annual cost</li>
+  <li>Internal rate of return (IRR)</li>
+  <li>Breakeven analysis</li>
+</ul>
+
+<h3 id="how-to-calculate-npv">How to calculate NPV</h3>
+<p>see above.</p>
+
+<h3 id="how-to-calculate-annual-cost">How to calculate annual cost</h3>
+<p>Calculate the annual investment cost using 
+\(R = [\frac{i(1+i)^n}{(1+i)^n-1}]PV\), 
+or using the Excel function pmt(rate,nper,pv,fv,type); the annual maintenance cost, income, etc.</p>
+
+<h3 id="how-to-calculate-irr">How to calculate IRR</h3>
+<p><strong>Discount rate</strong>: the rate at which the present value of a series of
+investments is equal to the present value of the returns on
+those investments.</p>
+
+<p>For an investment that requires and produces a number of cash
+flows over time, <strong>Internal Rate of Return</strong> is the discount rate
+that makes the net present value of those cash flows equal to
+zero.</p>
+
+<p>For a set of transactions over time, the IRR on your transactions
+will give you a picture of your overall rate of return.</p>
+
+<p>Given the NPV formula:</p>
+
+<p>\(NPV = \sum_{t=0}^N \frac{R_t}{(1+i)^t}\),</p>
+
+<p>IRR is the discount rate which sets the NPV of the given cash 
+flows made at the given times to zero. This is a nonlinear equation that must be 
+solved numerically. Note that some of the cash flow $R_t$s are expenses.</p>
+
+<h3 id="how-to-perform-break-even-analysis">How to perform break-even analysis</h3>
+<p>Find how many periods are needed to equal the present value (PV) of
+the investment cost</p>
+
+<h2 id="activity-1-interest">Activity 1: Interest</h2>
+<p>Use <a href="https://docs.google.com/spreadsheets/d/1sCL38r9I73seXU7IXAj6VPdroeFTddfsGBVgFXyvBMA/edit#gid=428714885">this problem</a> to practice the above analysis tools.</p>
+
+:ET

@@ -1,0 +1,181 @@
+I"j+<h1 id="iot---piezoelectric-sensor-hookup-guide---mae540-2017-team-1">IoT - Piezoelectric sensor hookup guide - MAE540-2017 Team 1</h1>
+<p>By Brandon Butterfield, Rutvij Naik, Sankaranand Ramasamy, Sai Nizampatnam, Sujeet Krishnan</p>
+
+<h2 id="introduction-to-piezoelectric-sensor">Introduction to Piezoelectric sensor</h2>
+<ol>
+  <li>Piezo sensors generate electric charge on the application of stress.</li>
+  <li>They are unique because they produce an alternating current (AC) voltage when stressed, converting mechanical energy to electrical.</li>
+  <li>They are ideal for low-power flex, touch, and vibration sensing. Piezos can be used for energy harvesting.</li>
+  <li>Piezo’s have the potential to produce very large AC voltage spikes - ranging upwards of +/-50V.</li>
+  <li>Because they produce such high voltages, large resistors are often used to “load down” the piezo sensor in vibration-sensing applications.</li>
+</ol>
+
+<h2 id="applications">Applications</h2>
+<ol>
+  <li>Piezo acts as a pressure sensor in the touch pads of mobile phones.</li>
+  <li>In the automotive industry, piezoelectric elements are used to monitor combustion when developing internal combustion engines.</li>
+  <li>The sensors are either directly mounted into additional holes into the cylinder head or the spark/glow plug is equipped with a built-in miniature piezoelectric sensor.</li>
+</ol>
+
+<h2 id="item-list">Item list</h2>
+
+<ol>
+  <li><strong>The SparkFun ESP8266 Thing board</strong></li>
+  <li><strong>FTDI Basic -3.3V</strong></li>
+  <li><strong>SparkFun Cerberus USB Cable</strong></li>
+  <li><strong>Jumper Wires and a Breadboard</strong></li>
+  <li><strong>Arduino stackable header</strong></li>
+  <li>A Android/Apple <strong>smart phone</strong> and a <strong>computer</strong></li>
+  <li><strong>Piezo Vibration Sensor large with Mass</strong></li>
+  <li><strong>1 Mega Ohm Resistor</strong></li>
+</ol>
+
+<h2 id="installation-guideline">Installation Guideline</h2>
+
+<h3 id="hardware-setup">Hardware setup</h3>
+<ol>
+  <li>Connect the wires to all the FTDI ends.</li>
+  <li>Then, connect the other ends of the wire to ESP8266 board in a serial order and not according to the labelling on the board.</li>
+  <li>For instance, the black wire on the FTDI will go to the last port of the ESP8266 board and so on.</li>
+  <li>The Piezo sensor is grounded on one end, and a generated voltage is routed to the Arduino’s A0 ADC pin.</li>
+  <li>Additionally, to dampen voltage spikes the Piezo sensor is loaded with a large resistor of 1 Mega Ohm. See figures below.</li>
+</ol>
+
+<p><img src="/_images/tutorial_iot/Hookup 1.jpeg" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/Hookup 2.jpeg" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/Hookup 3.jpeg" alt="Drawing" style="height: 400px;" /></p>
+
+<h3 id="software-setup">Software setup</h3>
+<ol>
+  <li>Download the [Arduino IDE] and install.</li>
+  <li>Open the Arduino IDE. Install ESP8266 Arduino Addon:
+    <ul>
+      <li>Go to <strong>File &gt; Preference</strong>, type
+<code class="language-plaintext highlighter-rouge">http://arduino.esp8266.com/stable/package_esp8266com_index.json</code>
+into the “Additional Board Manager URLs” text box. Hit OK.</li>
+      <li>Then go to <strong>Tools &gt; Boards &gt; Boards Manager</strong>, search “esp8266”, and install it.</li>
+      <li>Go to <strong>Tools &gt; Boards</strong>, select “ESP8266 Thing”. If you don’t see it, close and reopen the IDE.</li>
+    </ul>
+  </li>
+  <li>On your smart phone, install “Blynk” and register. It’s free.</li>
+  <li>Download the [Blynk library][blynklib]. Unzip it and move it to <strong>%myDocuments%/Arduino/libraries</strong>
+(%myDocument% should be %your_user_name/documents% on Windows).</li>
+</ol>
+
+<h3 id="arduino-code">Arduino Code</h3>
+<p>Now in Arduino IDE, open a new sketch, paste the following code:
+Type the Blynk Auth Token, Wifi name and password in the corresponding “***”</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+</pre></td><td class="code"><pre>  <span class="cp">#include &lt;dummy.h&gt;
+</span>  <span class="cp">#include &lt;Wire.h&gt;
+</span>  <span class="cp">#include &lt;ESP8266WiFi.h&gt;
+</span>  <span class="cp">#include &lt;BlynkSimpleEsp8266.h&gt;
+</span>   
+  <span class="c1">// You should get Auth Token in the Blynk App.</span>
+  <span class="c1">// Go to the Project Settings (nut icon).</span>
+  <span class="kt">char</span> <span class="n">auth</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"***"</span><span class="p">;</span> <span class="c1">// ***Type in your Blynk Token</span>
+  
+  <span class="c1">// Your WiFi credentials.</span>
+  <span class="c1">// Set password to "" for open networks.</span>
+  <span class="kt">char</span> <span class="n">ssid</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"***"</span><span class="p">;</span> <span class="c1">// ***your wifi name</span>
+  <span class="kt">char</span> <span class="n">pass</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"***"</span><span class="p">;</span> <span class="c1">// ***and password</span>
+  <span class="k">const</span> <span class="kt">int</span> <span class="n">PIEZO_PIN</span> <span class="o">=</span> <span class="n">A0</span><span class="p">;</span> <span class="c1">// Piezo output</span>
+  <span class="kt">void</span> <span class="nf">setup</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">ssid</span><span class="p">,</span> <span class="n">pass</span><span class="p">);</span>
+    <span class="c1">//Serial.begin(115200);</span>
+   <span class="p">}</span> 
+  <span class="kt">void</span> <span class="nf">loop</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">run</span><span class="p">();</span>
+    <span class="kt">int</span> <span class="n">piezoADC</span> <span class="o">=</span> <span class="n">analogRead</span><span class="p">(</span><span class="n">PIEZO_PIN</span><span class="p">);</span> <span class="c1">// Reads analog data from the sensor.</span>
+    <span class="kt">float</span> <span class="n">piezoV</span> <span class="o">=</span> <span class="n">piezoADC</span> <span class="o">/</span> <span class="mi">1023</span><span class="p">.</span><span class="mi">0</span> <span class="o">*</span> <span class="mi">5</span><span class="p">.</span><span class="mi">0</span><span class="p">;</span> 
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">virtualWrite</span><span class="p">(</span><span class="n">V0</span><span class="p">,</span> <span class="n">piezoV</span><span class="p">);</span> <span class="c1">// Writes output voltage to virtual pin 0 on the Blynk app.</span>
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">virtualWrite</span><span class="p">(</span><span class="n">V1</span><span class="p">,</span> <span class="n">piezoV</span><span class="p">);</span> <span class="c1">// Writes output voltage to virtual pin 1 on the Blynk app.</span>
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">virtualWrite</span><span class="p">(</span><span class="n">V2</span><span class="p">,</span> <span class="n">piezoV</span><span class="p">);</span> <span class="c1">// Writes output voltage to virtual pin 2 on the Blynk app.</span>
+   <span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<h3 id="blynk-setup">Blynk Setup</h3>
+<p>Since there is a conflict between the chip and serial monitor, Blynk is used instead.</p>
+
+<ol>
+  <li>Create a Blynk account.</li>
+  <li>Create a new project in Blynk, and select the hardware model <strong>ESP8266</strong>.</li>
+  <li>Get Auth Token for the new project, and paste it at the blynk token in the Arduino Sketch code given above.</li>
+  <li>On Blynk, add a value display widget. In the Blynk value display widget settings and then click on pin to select virtual pin V0.</li>
+  <li>Similarly, add graph and gauge widget.</li>
+  <li>In all the widgets, frequency of requests is set to <strong>push</strong>.</li>
+</ol>
+
+<p><img src="/_images/tutorial_iot/Blynk_Value setting.png" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/Blynk_Graph setting.png" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/Blynk_Gauge setting.png" alt="Drawing" style="height: 400px;" /></p>
+
+<h2 id="the-experiment-and-discussion">The experiment and discussion</h2>
+<ol>
+  <li>An experiment is conducted to detect vibration using this sensor.</li>
+  <li>After ensuring that the connections to the computer system and the boards are proper, the ESP8266 thing is turned on and code is uploaded.</li>
+  <li>Vibrations are generated by flicking the sensor repeatedly with different force and strength.</li>
+  <li>click the <strong>Play</strong> icon on the top right corner of the app to get the Blynk running.</li>
+</ol>
+
+<p><img src="/_images/tutorial_iot/Reading 1.png" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/Reading 2.png" alt="Drawing" style="height: 400px;" /></p>
+
+<ol>
+  <li>The results shown above are the voltage signals generated from the piezo sensor. It ranges from 0 - 5V.</li>
+  <li>To view the analog values, one can just change piezoV in Blynk.virtualWrite to piezoADC.</li>
+  <li>Vibration threshold can be adjusted according to the project needs.</li>
+  <li>Arduino can be calibrated to look for any measurements above the threshold value to detect vibrations.</li>
+</ol>
+
+<h2 id="debugging-tips">Debugging tips</h2>
+<ol>
+  <li>
+    <p>If the ESP8266 is off you would receive an “upload_mem” error.</p>
+  </li>
+  <li>
+    <p>campus wifi does not work for the Thing due to its security settings. One can turn on hotspot on your phone and set up ssid and password from there. The Thing will then connect to your phone.</p>
+  </li>
+  <li>
+    <p>If you encounter the error: “warning: espcomm_sync failed…”, there could be three reasons:
+Check if the Thing is turned on! The switch is on one corner of the board. You should see a red light on once the board is turned on.
+In the IDE, check <strong>Tools&gt;Port</strong> to see which serial port you are using. 
+Remember that both the Thing and the FTDI are hooked up through USB, the one we should use is the USB Serial Port rather than Communications Port.
+To find the right port, go to Device Manager (on Windows, it’s under <strong>Control Panel&gt;System and Security&gt;System</strong>) and check “<strong>Ports</strong>”.</p>
+  </li>
+  <li>
+    <p>The problem disappears when you re-upload, if the port is chosen correctly.</p>
+  </li>
+</ol>
+
+:ET

@@ -1,0 +1,58 @@
+I"	<h1 id="analytical-design-and-homework-3">Analytical Design and Homework 3</h1>
+<p>by Max Yi Ren</p>
+
+<p>See the <a href="/_teaching/productdesign/AnalyticalDesign.pptx">lecture notes</a> and the <a href="http://designinformaticslab.github.io/productdesign_tutorial/2016/11/20/ansys.html">Ansys tutorial</a>.</p>
+
+<h2 id="activity-1-doe-and-response-surface-methods">Activity 1: DOE and response surface methods</h2>
+<p>Based on the structural analysis settings in the Ansys tutorial, conduct DOE and create a response
+surface. Discuss which DOE method and response surface model you should use.</p>
+
+<h2 id="homework-3-design-analysis">Homework 3: Design Analysis</h2>
+<p>Create the necessary simulation for your project, and perform optimization on 
+your product attributes with respect to the design variables. Note: If your project
+does not involve physical design, please use the braking disk example in the tutorial.</p>
+
+<p>The report should contain the following elements:</p>
+
+<ol>
+  <li>
+    <p>An executive summary of your model, the objectives, 
+constraints, variables, and design results (One page).</p>
+  </li>
+  <li>
+    <p>A description of your geometry, material assignment, mesh settings, and boundary conditions.</p>
+  </li>
+  <li>
+    <p>A discussion on whether your simulation results are reasonable.</p>
+  </li>
+  <li>A description of the analysis: DOE, response surface, sensitivity analysis
+    <ul>
+      <li>How do you choose your DOE method?</li>
+      <li>How do you choose your response surface model?</li>
+      <li>How good is your response surface model?</li>
+      <li>Are your objectives sensitive to the chosen variables?</li>
+    </ul>
+  </li>
+  <li>A description of the optimization and results
+    <ul>
+      <li>What optimization algorithm do you use?</li>
+      <li>What improvements do you get from the optimization?</li>
+      <li>Is your optimal solution reasonable?</li>
+    </ul>
+  </li>
+</ol>
+
+<p>Notes:</p>
+
+<ul>
+  <li>
+    <p>Please do not paste a large amount of images directly from ANSYS. You need to edit
+figures so that they contain just the necessary information.</p>
+  </li>
+  <li>
+    <p>Submit your report to yiren@asu.edu with the exact title “MAE540 Homework 3 - Team number”. 
+Please make sure it is in <strong>pdf</strong> format.</p>
+  </li>
+</ul>
+
+:ET

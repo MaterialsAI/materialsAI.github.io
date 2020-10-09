@@ -1,0 +1,53 @@
+---
+layout: default
+date: 2020-10-08
+---
+
+<div id="mission">
+  <b>Mission:</b> High-fidelity predictive modeling of complex materials under extreme conditions (high temperature, high stress,
+  corrosive environment etc.) is crucial for accelerating material design and optimization to address the pressing
+  challenges in our world. This research group aims to leverage both fundamental and use-inspired AI research, coupled
+  with cutting-edge experiments, to revolutionize and transform traditional materials science and engineering.
+  <br><br>
+  <b>Acknowledgement:</b> This group is supported by
+  <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2020277&HistoricalAwards=false"> NSF DMR#2020277</a>:
+  <i>AI Institute: Planning: Novel Neural Architectures for 4D Materials Science</i>.
+
+</div>
+
+<!--Dr. Yi Ren's talks interest is in the-->
+<!--development of new optimization algorithms for solving design problems-->
+<!--that are intractable within the current computational frameworks. Such algorithms will-->
+<!--acquire knowledge transfer capabilities, and leverage human knowledge, physics-based models,-->
+<!--and new computing hardware.-->
+<!--His talks has been applied to real-world challenges including computational-->
+<!--material design, vehicle and robotics system design and control, and-->
+<!--the automation of industrial design for meeting consumer preferences.-->
+
+<div id="news">
+  <b>News:</b><br>
+  {% assign count = 0 %}
+  {% for post in site.posts %}
+    {% if post.categories contains 'news' and count <= 15 %}
+      {% assign count = count | plus: 1 %}
+      <a href="{{ post.url }}">[{{post.date | date: "%b %-d, %Y"}}]   {{ post.title }}</a><br>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<!--<div class="people">-->
+<!--  <b>People:</b><br>-->
+<!--  {% for people in site.posts %}-->
+<!--    {% if people.categories contains 'people' %}-->
+<!--    <div class="member">-->
+<!--      {% if people.image %}-->
+<!--        <img src="{{ site.url }}/_images/people/{{ people.image}}">-->
+<!--      {% else %}-->
+<!--        <img src="{{ site.url }}/_images/people/missing_people.png">-->
+<!--      {% endif %}-->
+<!--      <br><a href="http://{{ people.link }}">{{ people.name }},</a><br> {{ people.position }}-->
+<!--      &lt;!&ndash;, project: {{ people.project }}&ndash;&gt;-->
+<!--    </div>-->
+<!--    {% endif %}-->
+<!--  {% endfor %}-->
+<!--</div>-->

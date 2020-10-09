@@ -1,0 +1,361 @@
+I"�?<style type="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<h2 id="gradient-descent-application---reinforcement-learning">Gradient Descent Application - Reinforcement Learning</h2>
+
+<h3 id="introduction">Introduction</h3>
+
+<p><img src="/_teaching/designopt/polebalancing/animation.gif" alt="Drawing" style="height: 400px;" /></p>
+
+<p>In this tutorial, you will learn how to use OpenAI gym to create a 
+controller for the classic pole balancing problem, and test what you learned
+on a rocket landing problem. Both will be solved using Reinforcement Learning.
+While fully understanding RL would require background knowledge beyond
+what we have covered in this class (namely, Markov Decision Process, Dynamic Programming,
+and Policy Search), here we present one particular formulation of an
+ optimization problem for designing a controller, and show that
+ gradient descent can be applied to solve this problem.</p>
+
+<p>It should be noted that a controller for pole balancing
+can be designed and analyzed through classic control theory, by linearizing
+its dynamics. The presented solution here does not require knowledge about the
+dynamical system, nor does it require linearization (is it good news or not?).</p>
+
+<h3 id="get-ready">Get Ready</h3>
+
+<p>This section discusses the preparation you need to kick start the project.
+We will start with a minimalistic guideline, and then introduce all gadgets
+involved (Git, Github, Python, and TensorFlow) for those who are interested.</p>
+
+<h4 id="a-minimalistic-guideline-to-get-things-to-work-without-docker">A minimalistic guideline to get things to work (without Docker)</h4>
+
+<p>This guideline is written for Windows users and tested on Windows only.
+For Linux and Mac users, you can follow the guideline, although you should
+already have Python and Git installed by default.</p>
+
+<ol>
+  <li>
+    <p>To download the cartpole sample <a href="https://github.com/hope-yao/cartpole">code</a>,
+you can either click on the green button (Clone or download) to download 
+as a zip, or use <a href="https://git-scm.com/">Git</a>(See intro to Git).</p>
+  </li>
+  <li>
+    <p>You will install <a href="https://www.python.org/downloads/release/python-352/">Python 3.5</a>.
+Check if Python is correctly installed by typing in the command line <code class="language-plaintext highlighter-rouge">python</code>.
+To do so, launch the
+command prompt (go to start and search <code class="language-plaintext highlighter-rouge">cmd</code>).
+<strong>IMPORTANT</strong>: When you install Python, please choose to
+install <strong>pip</strong>, and choose to <strong>include Python in your environment path</strong>.</p>
+  </li>
+  <li>
+    <p>Install TensorFlow (CPU version) <a href="https://www.tensorflow.org/install/">here</a> if
+you are on Linux or Mac, or <a href="https://www.tensorflow.org/install/install_windows">here</a>
+if you are on Windows.</p>
+  </li>
+  <li>
+    <p>Once done, go to the folder where you hold this code, type in the command line: <br />
+<code class="language-plaintext highlighter-rouge">
+pip install -r requirement.txt
+</code>. 
+This should install all dependencies.
+<strong>IMPORTANT</strong>: Please run this command in the <em>command line</em>, rather than in the <em>Python prompt</em>.</p>
+  </li>
+  <li>
+    <p>You can then run the code by typing in:
+<code class="language-plaintext highlighter-rouge">
+python main.py
+</code>.</p>
+  </li>
+</ol>
+
+<h4 id="a-little-more-details-on-the-gadgets-involved">A little more details on the gadgets involved</h4>
+
+<p>The following would be useful if you plan to build your course project using
+Python, TensorFlow, or Github.</p>
+
+<ol>
+  <li>
+    <p><strong>Development Environment</strong>: I recommend <a href="https://www.jetbrains.com/pycharm/download">Pycharm</a>.
+This is an environment where you can manage all Python versions, packages, and version control,
+which I will explain next. <strong>NOTE</strong>: As a student, you can get a free license for Pycharm.
+<!--For **Linux** users, you can install prerequisits using the commands below:-->
+<!--```-->
+<!--$pip install jupyter-->
+<!--$pip install tensorflow-->
+<!--$pip install gym-->
+<!--```--></p>
+  </li>
+  <li>
+    <p><strong>Version control</strong>: The idea of version control is to keep track of all changes
+you make throughout the project so that you can always trace back to
+an earlier version of your project. It also make collaboration more seamless,
+e.g., by automatically merging together different versions of the same
+document produced by members of a team. <strong>Git</strong> is arguably the most popular
+version control package out there right now. Once you install git, you can ask it to track
+any document you work on, e.g., texts, codes, etc. Here we use git to both <em>clone</em>
+an existing project from github, and to version control that cloned project locally.</p>
+  </li>
+  <li>
+    <p><strong>Github</strong>: Github is the place where your store your project for free, as long as
+the project is made publicly available. It is becoming a standard in academia and some industry that
+codes and data be published on github so that results claimed by researchers can be reproduced.
+In this class, you are required to publish your project on github so that your models
+can be reused by future students (depending on your choice of
+the <a href="https://choosealicense.com/">license</a>), and your
+results can be reproduced if necessary.</p>
+  </li>
+</ol>
+
+<h3 id="pole-balancing">Pole balancing</h3>
+
+<p>If you successfully get the example code to run, and wonder what happened
+under the hood, please read on.</p>
+
+<h4 id="problem-statement">Problem statement</h4>
+
+<p>The simple pole balancing (inverse pendulum) setting consists of a pole
+and a cart. The system states are the cart displacement \(x\), 
+cart velocity \(\dot{x}\), pole angle \(\theta\), and pole angular velocity 
+\(\dot{\theta}\). The parameters of the default system is as follows:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">Left-aligned</th>
+      <th style="text-align: center">Center-aligned</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">mass cart</td>
+      <td style="text-align: center">1.0</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">mass pole</td>
+      <td style="text-align: center">0.1</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">pole length</td>
+      <td style="text-align: center">0.5</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">force</td>
+      <td style="text-align: center">10.0</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">delta_t</td>
+      <td style="text-align: center">0.02</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">theta_threshold</td>
+      <td style="text-align: center">12 (degrees)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">delta_t</td>
+      <td style="text-align: center">2.4</td>
+    </tr>
+  </tbody>
+</table>
+
+<!--The system equations are ***.-->
+
+<p>The controller takes in the system states, and outputs a fixed force on the cart
+to either left or right. The controller needs to be designed so that within
+4 seconds, the pole angle does not exceed 12 degrees, and the cart displacement
+does not exceed 2.4 unit length. A trial will be terminated if the system 
+is balanced for more than 4 seconds, or any of the constraints are violated. 
+<!--The **objective** of the control algorithm is to make system to stay in a given region of state space as long as posible. Default physical parameters of this problem are:--></p>
+
+<h4 id="some-preliminaries-for-reinforcement-learning">Some preliminaries for reinforcement learning</h4>
+
+<p>We first introduce
+the concept of a <strong>Markov Decision Process</strong>: An MDP contains a <em>state space</em>,
+an <em>action space</em>, a <em>transition function</em>, a <em>reward function</em>, and 
+a decay parameter \(\gamma\). In our case,
+the state space contains all possible combinations of \(x\), \(\dot{x}\), 
+\(\theta\), \(\dot{\theta}\). The action space contains the force to the left, 
+and the force to the right. The transition function \(s_{k+1} = T(s_k,a_k)\)
+computes the next state \(s_{k+1}\) based on the current state \(s_k\) and 
+the action \(a_k\).</p>
+
+<p>The transition is given by the system equations.
+The reward function defines an instantaneous reward \(r_k = r(s_k)\).
+In particular, we define reward as 1 when the system does not fail, or 0
+otherwise. A discount factor \(\gamma\) is applied to rewards so that
+rewards in the far future worth less than the near future. A long term
+<em>value</em> function is defined recursively as a function of the controller \(\pi\):</p>
+
+\[V_k(\pi,s_k) = r_k +
+\gamma V_{k+1}(\pi,T(s_k,a_k)).\]
+
+<p>We define the
+controller as a function of the states that outputs a number
+between 0 and 1: \(\pi(s,w) \in [0,1]\), where \(w\) is the unknown
+parameters to be learned.
+This number will be treated as the probability for choosing the action
+“pushing to the left”. The probability for “pushing to the right” will
+be \(1-\pi(s,w)\).</p>
+
+<p>Due to the randomness in the initial state \(s_0\) and the sequence of
+actions \(a_0\), \(a_1\),…, \(a_K\), the value function
+\(V_0(\pi,s_0)\) is a random variable parameterized by \(w\).</p>
+
+<p>The goal of optimal control is to find optimal controller
+parameters \(w\) that maximizes
+the expectation of the value</p>
+
+\[\mathbb{E}_{s_0,a_0,a_1,...,a_K}[V_0(\pi,s_0)].\]
+
+<h4 id="a-simple-loss-function">A simple loss function</h4>
+
+<p>Given a trial run with \(K\) time steps
+based on the current controller, we collect the instantaneous 
+rewards \(r_k\), actions \(a_k\), and the controller outputs \(\pi_k\) for \(k=1,...,K\). 
+We can minimize the following loss function</p>
+
+<p>\(f(w) = -\sum_{k=1}^K (\sum_{j=k}^K \gamma^{j-k}r_j) (a_k\log(\pi_k)+(1-a_k)\log(1-\pi_k))\).</p>
+
+<p>In this loss function, the first term \(\sum_{j=k}^K \gamma^{j-k}r_j\) represents
+the value at time step \(k\), the second term \(a_k\log(\pi_k)+(1-a_k)\log(1-\pi_k)\) is close to
+\(0\) when the favored action is chosen, and \(-\inf\) when the unfavored action is chosen.
+Essentially, the loss is minimized when all chosen control decisions \(a_k\) lead
+to high value. Thus by tuning \(w\), we correct the mistakes we made in the 
+trial (i.e., high value from unfavored move, or low value from favored move).</p>
+
+<p>In the code, you may notice that the values are normalized.
+According to <a href="https://arxiv.org/abs/1602.07714">this paper</a>, this treatment
+speeds up the training process.</p>
+
+<h4 id="controller-model">Controller model</h4>
+
+<p>We mentioned that the controller computes a probability \(\pi(s,w)\). But
+how does this function look like? Here we model \(\pi(s,w)\)
+as a single-layer neural network:</p>
+
+<p><img src="/_teaching/designopt/polebalancing/cart-pole-controller.png" alt="Drawing" style="height: 400px;" /></p>
+
+<p>It is found that a single layer is sufficient for this environment setting.
+In fact, adding layers may deteriorate the training performance due to the
+additional network complexity.</p>
+
+<!--Stochastic gradient descent with momentum is used to train this network:-->
+<!--![SGD](https://wikimedia.org/api/rest_v1/media/math/render/svg/4895d44c0572fb2988f2f335c28cc055a7f75fa0)-->
+<!--You can play with its paramters by using your own inputs to main.py.-->
+
+<h4 id="training-algorithm">Training algorithm</h4>
+
+<p>Due to the probabilistic nature of the controller, we minimize an averaged
+loss \(\bar{f}(w) = \sum_{t=1}^T f_t(w)\) over \(T\) trials. This is done by simply
+running the simulation \(T\) times, recording all data, and calculate the gradient
+of \(\bar{f}(w)\). Notice that the gradient in this case will be stochastic, in the sense that
+we only use \(T\) random samples to approximate it, rather than finding the theoretical
+mean of \(\nabla_w \bar{f}\).
+We use [ADAM][adam] to perform stochastic gradient descent.</p>
+
+<h4 id="results">Results</h4>
+
+<p>With default problem settings, we can get a convergence curve similar this:</p>
+
+<p><img src="/_teaching/designopt/polebalancing/iteration.png" alt="Drawing" style="height: 400px;" /></p>
+
+<p>Y axis of the main plot is the total reward a policy achieves,
+X axis is the number of training epochs. 
+The small window shows the normalized trajectory of cart positions and 
+pole angles in the most recent trial. It can be seen that the learning
+achieves a good controller in the end.</p>
+
+<p>To store videos, you will need to uncomment the line:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code># self.env = wrappers.Monitor(self.env, dir, force=True, video_callable=self.video_callable)
+</code></pre></div></div>
+
+<p>By doing this, a series of the simulation videos will be saved in the folder <code class="language-plaintext highlighter-rouge">/tmp/trial</code>.</p>
+
+<p>You can change problem parameters in <code class="language-plaintext highlighter-rouge">gym_installation_dir/envs/classic_control/cartpole.py</code>.
+More details about the setup of this physical environment can be found
+in the <a href="https://github.com/openai/gym/wiki/CartPole-v0">gym documents</a>.
+Details on how to derive the governing equations for single pole can be
+found at <a href="https://pdfs.semanticscholar.org/3dd6/7d8565480ddb5f3c0b4ea6be7058e77b4172.pdf">this technical report</a>.
+Corresponding equations for how to generalize this to multiple poles
+can also be found at <a href="http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=155416">this paper</a></p>
+
+<h3 id="rocket-landing">Rocket landing</h3>
+
+<p>The rocket landing case is created by my former student
+<a href="https://github.com/sjellio1/MAE598_Project">Steven Elliott</a>. The report
+is <a href="https://github.com/sjellio1/MAE598_Project/blob/master/Writeup.pdf">here</a>.
+Below is a brief introduction to his code.</p>
+
+<h4 id="problem-statement-1">Problem statement</h4>
+
+<p>The rocket has 6 states: the x and y coordinates, the angle, and the time
+derivative of these three. The action space is discrete:</p>
+
+<ul>
+  <li>Action 0 - No thrust, no torque</li>
+  <li>Action 1 - No thrust, torque left</li>
+  <li>Action 2 - No thrust, torque right</li>
+  <li>Action 3 - Trust, no torque</li>
+  <li>Action 4 - Thrust, torque left</li>
+  <li>Action 5 - Thrust, torque right</li>
+</ul>
+
+<p>The reward is defined as the negative of the Euclidean distance from the
+last position of the rocket to the target landing location.</p>
+
+<h4 id="exercise">Exercise</h4>
+
+<p>Please test the <a href="https://github.com/sjellio1/MAE598_Project">code</a> and think
+about the following questions.</p>
+
+<ul>
+  <li>
+    <p>What do you think is a good objective function to use for the training?</p>
+  </li>
+  <li>
+    <p>How will you formulate the problem if the dynamics of the rocket is known?</p>
+  </li>
+</ul>
+
+<!--Besides, if your Ubuntu is 14.04, you might also need to install ffmpeg player for proper video output:-->
+<!--```-->
+<!--$sudo apt-get install libav-tools-->
+<!--```-->
+
+<!--The simplest way to run this repo is:-->
+<!--```-->
+<!--$python main.py-->
+<!--```-->
+<!--You can also specify your own learning rate and momentum for the training process by replacing \<lr\> and \<momentum\> with your own values: -->
+<!--```-->
+<!--$python main.py <lr> <momentum>-->
+<!--```-->
+
+<!--## TODO-->
+<!--- Move all code to ipynb-->
+<!--- Add more intro to RL-->
+
+<!--[ipython](https://ipython.org/ipython-doc/2/install/install.html)-->
+
+<!--[tensorflow](https://www.tensorflow.org/install/) -->
+
+<!--[gym](https://gym.openai.com/docs)-->
+:ET

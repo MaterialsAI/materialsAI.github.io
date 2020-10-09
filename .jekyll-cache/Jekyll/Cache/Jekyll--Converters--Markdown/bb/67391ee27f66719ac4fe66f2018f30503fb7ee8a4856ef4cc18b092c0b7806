@@ -1,0 +1,690 @@
+I" �<style type="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<h1 id="tutorial-on-topology-optimization">Tutorial on Topology Optimization</h1>
+
+<p><img src="/_images/mechdesign/infill.gif" alt="Drawing" style="height: 600px;" /></p>
+
+<p>Compliance minimization with local density constraint (created by Ruijin Cang)</p>
+
+<h2 id="introduction">Introduction</h2>
+<p>With great power comes great responsibility. The recent advances in 3D printing 
+(<a href="/_teaching/mechdesign/AdditiveManufacturing.pdf">overview slides</a>) allowed 
+unprecedented opportunities in creating complex geometries for all kinds of applications 
+from soft robots to customized prosthetics to light-weight energy absorbers. 
+The question is: How do we <strong>systematically</strong> create these complex geometries? 
+Topology optimization is the answer.</p>
+
+<p>The goal of this tutorial is to help you to learn topology optimization without 
+any background knowledge, although you do need to be prepared for calculus and linear algebra. 
+Please also read my <a href="http://designinformaticslab.github.io/mechdesign_lecture/2018/01/28/featop.html">previous post</a> 
+on finite element analysis if you are not familiar with the topic.</p>
+
+<p>The tutorial is modified from my 
+<a href="http://designinformaticslab.github.io/designopt_tutorial/2017/10/26/topologyopt.html">post</a>
+for the optimization class, with additional explanations added when necessary. It is also based on
+Dr. Sigmund’s topology optimization <a href="http://www.topopt.dtu.dk/?q=node/751">code</a> 
+and <a href="http://www.topopt.dtu.dk/files/TopOpt88.pdf">paper</a>.</p>
+
+<p><a href="#code">Shortcut to the code</a></p>
+
+<h2 id="explanation-of-the-mathematical-problem-behind-compliance-minimization">Explanation of the mathematical problem behind compliance minimization</h2>
+<p><a href="http://designinformaticslab.github.io/designopt_tutorial/2017/10/26/topologyopt.html">Recall</a> 
+that one typical form of topology optimization uses the compliance of the structure as the 
+design objective.
+Two reasons for this: One, it is common that one wants a structure to be compliant or stiff 
+(or a mixture of both); second, compliance is not only easy to compute but also (relatively) 
+easy to differentiate, which, as we will see, is the key to topology optimization.</p>
+
+<h3 id="notations">Notations</h3>
+<p>Following the previous discussion, the structure under design is segmented into \(n\) 
+finite elements, and a density value \(x_i\) is assigned to each element 
+\(i \in \{1,2,...,n\}\): A higher density corresponds to a less porous material 
+element and higher Yong’s modulus. Reducing the density to zero is equivalent to creating 
+a hole in the structure. Thus, the set of densities \({\bf x}=\{x_i\}\) can be used to 
+represent the topology of the 
+structure and is considered as the variables to be optimized. See figure <a href="#notation">here</a>.</p>
+
+<h3 id="problem-statement">Problem statement</h3>
+<p>The compliance minimization problem is formulated as follows:</p>
+
+\[\min_{\bf x} \quad {\bf f} := {\bf d}^T {\bf K}({\bf x}) {\bf d}\]
+
+\[\text{subject to:} \quad {\bf h} := {\bf K}({\bf x}) {\bf d} = {\bf u},\]
+
+\[\quad {\bf g} := V(\textbf{x}) \leq v,\]
+
+\[\textbf{x} \in [0,1].\]
+
+<p>Here \(V(\textbf{x})\) is the total volume; \(v\) is an upper bound on volume; 
+\({\bf d} \in \mathbb{R}^{n_d\times 1}\) is the displacement of the structure under 
+the load \({\bf u}\), 
+where \(n_d\) is the degrees of freedom (DOF) of the system (i.e., the number of x- and y-coordinates 
+of nodes from the finite element model of the structure);
+\({\bf K(x)}\) is the global stiffness matrix for the structure.</p>
+
+<p>\({\bf K(x)}\) is indirectly influenced by the topology \({\bf x}\), through the element-wise stiffness matrix</p>
+
+\[{\bf K}_i = \bar{\bf K}_e E(x_i),\]
+
+<p>and the local-to-global assembly:</p>
+
+\[{\bf K(x)} = {\bf G}[{\bf K}_1,{\bf K}_2,...,{\bf K}_n],\]
+
+<p>where the matrix \(\bar{\bf K}_e\) is predefined according to the finite element 
+type (we use first-order 
+quadrilateral elements throughout this tutorial) and the nodal displacements of the element (we use 
+square elements with unit lengths throughout this tutorial), \({\bf G}\) is an assembly matrix, \(E(x_i)\) is 
+the element-wise Young’s modulus defined as a function of the density \(x_i\): 
+\(E(x_i) := \Delta E x_i^p + E_{\text{min}}\), where \(p\) (the penalty parameter) is usually set to 3.
+ This cubic relationship between the topology and the modulus 
+is determined by the material constitutive models, and numerically, it 
+also helps binarize the topologies, i.e., to push the optimal \({\bf x}_i\) to 1 or 0 (why?). 
+The term \(E_{\text{min}}\) is added to provide numerical stability.</p>
+
+<h3 id="design-sensitivity-analysis">Design sensitivity analysis</h3>
+<p>Design sensitivity analysis is about computing the gradient \(\frac{df}{d{\bf x}}\), i.e., 
+the sensitivity of the objective (compliance) with respect to the changes in the topology. 
+This gradient represents the direction of unit topological change that will increase the compliance the most 
+(or decrease the most if the negative gradient direction is taken). Therefore, once the gradient is derived, 
+one can simply apply gradient ascend (or descend) to maximize (or minimize) the compliance. Analogously, 
+knowing the gradient is the same as knowing which way to climb up (or down) the mountain.</p>
+
+<p>By knowing this, one can see that design sensitivity analysis is key to all optimization problems. However, 
+for topology optimization and many other problems, deriving the sensitivity (the gradient) is often not straight forward or in some cases
+very challenging. We will explain in the following why this is so and how the derivation is done in our specific
+case.</p>
+
+<p>In general, the challenge comes from the fact that the objective \(f\) (the function we are trying to optimize) 
+is a function of the <strong>states</strong>, which are not explicitly known without solving some governing equations. 
+In our case, the states are the displacements \({\bf d}\) and variables are the density values \({\bf x}\). 
+We also notice that states and variables are related through the equation 
+\({\bf h} := {\bf K}({\bf x}) {\bf d} = {\bf u}\), which means that the states are implicitly functions 
+of the variables. Therefore, the sensitivity \(\frac{df}{d{\bf x}}\) 
+can be calculated as</p>
+
+\[\frac{df}{d{\bf x}} = (2 {\bf K}{\bf d})^T \frac{d{\bf d}}{d{\bf x}} + {\bf d}^T \frac{d{\bf K}}{d{\bf x}}{\bf d}\]
+
+<p>The above equation requires the derivation of \(\frac{d{\bf d}}{d{\bf x}}\), which can be found by differentiating
+the equation \({\bf h}\):</p>
+
+\[\frac{d{\bf h}}{d{\bf x}} = \frac{d{\bf K}}{d{\bf x}}{\bf d} + {\bf K}\frac{d{\bf d}}{d{\bf x}} = {\bf 0}\]
+
+<p>which leads to</p>
+
+\[\frac{d{\bf d}}{d{\bf x}} = {\bf K}^{-1}\frac{d{\bf K}}{d{\bf x}}{\bf d}\]
+
+<p>Therefore</p>
+
+\[\frac{df}{d{\bf x}} = - {\bf d}^T \frac{d{\bf K}}{d{\bf x}}{\bf d}\]
+
+<p>The above explains how the sensitivity is computed for our compliance minimization problem. It is worth noting that
+the result is <strong>only valid for</strong> (1) linear elastic material and (2) small deformation, 
+under which the stiffness matrix \({\bf K}\) does not change during the bending of the structure and the governing 
+equation is linear with respect to the states. In general, however, these assumptions do not hold and one will 
+need to resort to adjoint method for computing the sensitivity. Please see this more involved but well written 
+<a href="https://cs.stanford.edu/~ambrad/adjoint_tutorial.pdf">tutorial</a> by Andrew Bradley.</p>
+
+<h2 id="the-optimality-conditions">The optimality conditions</h2>
+<p>In the above, we discussed about how to compute the design sensitivity for solving a topology optimization problem.
+We learned that the sensitivity (the gradient) can be treated as a force that “pushes” a current design to move 
+towards better objective values. The question then is “when do we stop pushing?” Here is an intuitive answer: 
+We stop when one of the two things happened: (1) when we reach a point where the force is zero; or (2) when we reach 
+a point where there is a wall, so that the force and the “counter force” from the wall cancel out. Mathematically,
+the first case corresponds to a unconstrained solution (you learned this from calculus); the second case corresponds 
+to a constrained solution, where constraints prevent us from further improving the solution.</p>
+
+<p>Now consider compliance minimization. There are two kinds of constraints: One is that the density of the mesh can 
+only go from 0 to 1; the other is that the total density (or volume) is constrained (through the volume fraction constraint).
+From the derived equation for sensitivity, one can see that this volume fraction constraint should always be 
+active if an optimal topology is found, 
+i.e., the optimal topology should have as much volume fraction as allowed (why?). From our intuitive understanding 
+of the optimality conditions, this means that there will be a counter force from the wall through the 
+volume fraction constraint.</p>
+
+<p>This force balance, or the optimality conditions, can be expressed formally as</p>
+
+\[\frac{df}{d{\bf x}} + \mu \frac{d ({\bf 1}^T{\bf x}) }{d{\bf x}} = 0\]
+
+<p>Here \({\bf 1}^T{\bf x}\) represents the total volume, thus \(\frac{d ({\bf 1}^T{\bf x}) }{d{\bf x}} = {\bf 1}\). 
+\(-\frac{df}{d{\bf x}}\) pushes the solution towards lower compliance and 
+\(- \mu {\bf 1}\) pushes towards lower volume. \(\mu \geq 0\) is called <strong>the Lagrangian multiplier</strong>, 
+which measures the scale of the counter force, and is 0 when the solution does not “hit the wall”.</p>
+
+<p>There are many ways to find solutions (in terms of \({\bf x}\) and \(\mu\)) to satisfy the optimality conditions. 
+ See for example the method of moving asymptotes (MMA) and augmented Lagrangian. One simple approach 
+ is to iteratively update \({\bf x}\) as</p>
+
+\[{\bf x}_{new} = \sqrt{-\frac{df}{d{\bf x}}/\mu}{\bf x}\]
+
+<p>by choosing \(\mu\) in each iteration so that \({\bf x}_{new}\) is within 0 and 1. 
+Note that the square root and the multiplication operations in the above equation are element-wise.
+The rationale is that from the optimality conditions, 
+ \(-\frac{df}{d{\bf x}}/\mu\) should converge to 1 at an optimal solution.</p>
+
+<h2 id="the-algorithm">The algorithm</h2>
+<p>With these preliminaries, let us now look at the implementation. The seudo code for compliance minimization 
+is as follows:</p>
+
+<ol>
+  <li>
+    <p>FEA setup (see details below)</p>
+  </li>
+  <li>
+    <p>Algorithm setup: \(\epsilon = 0.01\) (or any small positive number), \(k = 0\) (counter for the iteration),
+\(\Delta x =\) a number larger than \(\epsilon\)</p>
+  </li>
+  <li>
+    <p>While \(norm(\Delta x) \leq \epsilon\), Do:</p>
+
+    <p>3.1. Update the stiffness matrix \({\bf K}\) and the displacement (state) \({\bf u}\) (finite element analysis)</p>
+
+    <p>3.2. Calculate element-wise compliance \({\bf u}^T_i \bar{\bf K}_e {\bf u}_i\)</p>
+
+    <p>3.3. Calculate partial derivatives 
+ \(\frac{df}{dx_i} = - 3\Delta E x_i^2 {\bf u}^T_i \bar{\bf K}_e {\bf u}_i\)</p>
+
+    <p>3.4. The gradient with respect to the volume fraction constraint is a constant vector of ones (\([1,...,1]^T\))</p>
+
+    <p>3.5. Apply filter to \(\frac{df}{d{\bf x}}\) to smooth the gradient (See discussion below)</p>
+
+    <p>3.6. Update \({\bf x}\) as \({\bf x}_{new} = \sqrt{-\frac{df}{d{\bf x}}/\mu}{\bf x}\)</p>
+
+    <p>3.7. Update \(norm(\Delta x)\), \(k = k+1\)</p>
+  </li>
+</ol>
+
+<h3 id="implementation-details">Implementation details</h3>
+<p>We explain some details based on the classic <a href="http://www.topopt.mek.dtu.dk/?q=node/751">88 line topology optimization code</a>.</p>
+
+<h4 id="the-code-">The code <a name="code"></a></h4>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">%%%% AN 88 LINE TOPOLOGY OPTIMIZATION CODE Nov, 2010 %%%%</span>
+<span class="k">function</span> <span class="n">top88</span><span class="p">(</span><span class="n">nelx</span><span class="p">,</span><span class="n">nely</span><span class="p">,</span><span class="n">volfrac</span><span class="p">,</span><span class="n">penal</span><span class="p">,</span><span class="n">rmin</span><span class="p">,</span><span class="n">ft</span><span class="p">)</span>
+<span class="c1">%% MATERIAL PROPERTIES</span>
+<span class="n">E0</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="n">Emin</span> <span class="o">=</span> <span class="mf">1e-9</span><span class="p">;</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">;</span>
+<span class="c1">%% PREPARE FINITE ELEMENT ANALYSIS</span>
+<span class="n">A11</span> <span class="o">=</span> <span class="p">[</span><span class="mi">12</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">6</span> <span class="o">-</span><span class="mi">3</span><span class="p">;</span>  <span class="mi">3</span> <span class="mi">12</span>  <span class="mi">3</span>  <span class="mi">0</span><span class="p">;</span> <span class="o">-</span><span class="mi">6</span>  <span class="mi">3</span> <span class="mi">12</span> <span class="o">-</span><span class="mi">3</span><span class="p">;</span> <span class="o">-</span><span class="mi">3</span>  <span class="mi">0</span> <span class="o">-</span><span class="mi">3</span> <span class="mi">12</span><span class="p">];</span>
+<span class="n">A12</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">6</span> <span class="o">-</span><span class="mi">3</span>  <span class="mi">0</span>  <span class="mi">3</span><span class="p">;</span> <span class="o">-</span><span class="mi">3</span> <span class="o">-</span><span class="mi">6</span> <span class="o">-</span><span class="mi">3</span> <span class="o">-</span><span class="mi">6</span><span class="p">;</span>  <span class="mi">0</span> <span class="o">-</span><span class="mi">3</span> <span class="o">-</span><span class="mi">6</span>  <span class="mi">3</span><span class="p">;</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">6</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">6</span><span class="p">];</span>
+<span class="n">B11</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">4</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">2</span>  <span class="mi">9</span><span class="p">;</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">4</span> <span class="o">-</span><span class="mi">9</span>  <span class="mi">4</span><span class="p">;</span> <span class="o">-</span><span class="mi">2</span> <span class="o">-</span><span class="mi">9</span> <span class="o">-</span><span class="mi">4</span> <span class="o">-</span><span class="mi">3</span><span class="p">;</span>  <span class="mi">9</span>  <span class="mi">4</span> <span class="o">-</span><span class="mi">3</span> <span class="o">-</span><span class="mi">4</span><span class="p">];</span>
+<span class="n">B12</span> <span class="o">=</span> <span class="p">[</span> <span class="mi">2</span> <span class="o">-</span><span class="mi">3</span>  <span class="mi">4</span> <span class="o">-</span><span class="mi">9</span><span class="p">;</span> <span class="o">-</span><span class="mi">3</span>  <span class="mi">2</span>  <span class="mi">9</span> <span class="o">-</span><span class="mi">2</span><span class="p">;</span>  <span class="mi">4</span>  <span class="mi">9</span>  <span class="mi">2</span>  <span class="mi">3</span><span class="p">;</span> <span class="o">-</span><span class="mi">9</span> <span class="o">-</span><span class="mi">2</span>  <span class="mi">3</span>  <span class="mi">2</span><span class="p">];</span>
+<span class="n">KE</span> <span class="o">=</span> <span class="mi">1</span><span class="p">/(</span><span class="mi">1</span><span class="o">-</span><span class="n">nu</span><span class="o">^</span><span class="mi">2</span><span class="p">)/</span><span class="mi">24</span><span class="o">*</span><span class="p">([</span><span class="n">A11</span> <span class="n">A12</span><span class="p">;</span><span class="n">A12</span><span class="s1">' A11]+nu*[B11 B12;B12'</span> <span class="n">B11</span><span class="p">]);</span>
+<span class="n">nodenrs</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">:(</span><span class="mi">1</span><span class="o">+</span><span class="n">nelx</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">nely</span><span class="p">),</span><span class="mi">1</span><span class="o">+</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="o">+</span><span class="n">nelx</span><span class="p">);</span>
+<span class="n">edofVec</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">nodenrs</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">edofMat</span> <span class="o">=</span> <span class="nb">repmat</span><span class="p">(</span><span class="n">edofVec</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span><span class="o">+</span><span class="nb">repmat</span><span class="p">([</span><span class="mi">0</span> <span class="mi">1</span> <span class="mi">2</span><span class="o">*</span><span class="n">nely</span><span class="o">+</span><span class="p">[</span><span class="mi">2</span> <span class="mi">3</span> <span class="mi">0</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span><span class="mi">2</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">iK</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="nb">kron</span><span class="p">(</span><span class="n">edofMat</span><span class="p">,</span><span class="nb">ones</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">'</span><span class="p">,</span><span class="mi">64</span><span class="o">*</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">jK</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="nb">kron</span><span class="p">(</span><span class="n">edofMat</span><span class="p">,</span><span class="nb">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span><span class="o">'</span><span class="p">,</span><span class="mi">64</span><span class="o">*</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="c1">% DEFINE LOADS AND SUPPORTS (HALF MBB-BEAM)</span>
+<span class="n">F</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">U</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">fixeddofs</span> <span class="o">=</span> <span class="nb">union</span><span class="p">([</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)],[</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)]);</span>
+<span class="n">alldofs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)];</span>
+<span class="n">freedofs</span> <span class="o">=</span> <span class="nb">setdiff</span><span class="p">(</span><span class="n">alldofs</span><span class="p">,</span><span class="n">fixeddofs</span><span class="p">);</span>
+<span class="c1">%% PREPARE FILTER</span>
+<span class="n">iH</span> <span class="o">=</span> <span class="nb">ones</span><span class="p">(</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">jH</span> <span class="o">=</span> <span class="nb">ones</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">iH</span><span class="p">));</span>
+<span class="n">sH</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">iH</span><span class="p">));</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="k">for</span> <span class="n">i1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">nelx</span>
+  <span class="k">for</span> <span class="n">j1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">nely</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="p">(</span><span class="n">i1</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nely</span><span class="o">+</span><span class="n">j1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="n">i2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">i1</span><span class="o">-</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">nelx</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">j2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">j1</span><span class="o">-</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="n">j1</span><span class="o">+</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">nely</span><span class="p">)</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="p">(</span><span class="n">i2</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nely</span><span class="o">+</span><span class="n">j2</span><span class="p">;</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="n">iH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">e1</span><span class="p">;</span>
+        <span class="n">jH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">e2</span><span class="p">;</span>
+        <span class="n">sH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">rmin</span><span class="o">-</span><span class="nb">sqrt</span><span class="p">((</span><span class="n">i1</span><span class="o">-</span><span class="n">i2</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">j1</span><span class="o">-</span><span class="n">j2</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="p">));</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+<span class="n">H</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">iH</span><span class="p">,</span><span class="n">jH</span><span class="p">,</span><span class="n">sH</span><span class="p">);</span>
+<span class="n">Hs</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">H</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+<span class="c1">%% INITIALIZE ITERATION</span>
+<span class="n">x</span> <span class="o">=</span> <span class="nb">repmat</span><span class="p">(</span><span class="n">volfrac</span><span class="p">,</span><span class="n">nely</span><span class="p">,</span><span class="n">nelx</span><span class="p">);</span>
+<span class="n">xPhys</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+<span class="n">loop</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">change</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="c1">%% START ITERATION</span>
+<span class="k">while</span> <span class="n">change</span> <span class="o">&gt;</span> <span class="mf">0.01</span>
+  <span class="n">loop</span> <span class="o">=</span> <span class="n">loop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="c1">%% FE-ANALYSIS</span>
+  <span class="n">sK</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="n">KE</span><span class="p">(:)</span><span class="o">*</span><span class="p">(</span><span class="n">Emin</span><span class="o">+</span><span class="n">xPhys</span><span class="p">(:)</span><span class="o">'.^</span><span class="n">penal</span><span class="o">*</span><span class="p">(</span><span class="n">E0</span><span class="o">-</span><span class="n">Emin</span><span class="p">)),</span><span class="mi">64</span><span class="o">*</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+  <span class="n">K</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">iK</span><span class="p">,</span><span class="n">jK</span><span class="p">,</span><span class="n">sK</span><span class="p">);</span> <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span><span class="o">+</span><span class="n">K</span><span class="o">'</span><span class="p">)/</span><span class="mi">2</span><span class="p">;</span>
+  <span class="n">U</span><span class="p">(</span><span class="n">freedofs</span><span class="p">)</span> <span class="o">=</span> <span class="n">K</span><span class="p">(</span><span class="n">freedofs</span><span class="p">,</span><span class="n">freedofs</span><span class="p">)\</span><span class="n">F</span><span class="p">(</span><span class="n">freedofs</span><span class="p">);</span>
+  <span class="c1">%% OBJECTIVE FUNCTION AND SENSITIVITY ANALYSIS</span>
+  <span class="n">ce</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="nb">sum</span><span class="p">((</span><span class="n">U</span><span class="p">(</span><span class="n">edofMat</span><span class="p">)</span><span class="o">*</span><span class="n">KE</span><span class="p">)</span><span class="o">.*</span><span class="n">U</span><span class="p">(</span><span class="n">edofMat</span><span class="p">),</span><span class="mi">2</span><span class="p">),</span><span class="n">nely</span><span class="p">,</span><span class="n">nelx</span><span class="p">);</span>
+  <span class="n">c</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">sum</span><span class="p">((</span><span class="n">Emin</span><span class="o">+</span><span class="n">xPhys</span><span class="o">.^</span><span class="n">penal</span><span class="o">*</span><span class="p">(</span><span class="n">E0</span><span class="o">-</span><span class="n">Emin</span><span class="p">))</span><span class="o">.*</span><span class="n">ce</span><span class="p">));</span>
+  <span class="n">dc</span> <span class="o">=</span> <span class="o">-</span><span class="n">penal</span><span class="o">*</span><span class="p">(</span><span class="n">E0</span><span class="o">-</span><span class="n">Emin</span><span class="p">)</span><span class="o">*</span><span class="n">xPhys</span><span class="o">.^</span><span class="p">(</span><span class="n">penal</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.*</span><span class="n">ce</span><span class="p">;</span>
+  <span class="n">dv</span> <span class="o">=</span> <span class="nb">ones</span><span class="p">(</span><span class="n">nely</span><span class="p">,</span><span class="n">nelx</span><span class="p">);</span>
+  <span class="c1">%% FILTERING/MODIFICATION OF SENSITIVITIES</span>
+  <span class="k">if</span> <span class="n">ft</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">dc</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">H</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">(:)</span><span class="o">.*</span><span class="n">dc</span><span class="p">(:))</span><span class="o">.</span><span class="p">/</span><span class="n">Hs</span><span class="o">.</span><span class="p">/</span><span class="nb">max</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">,</span><span class="n">x</span><span class="p">(:));</span>
+  <span class="k">elseif</span> <span class="n">ft</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="n">dc</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">H</span><span class="o">*</span><span class="p">(</span><span class="n">dc</span><span class="p">(:)</span><span class="o">.</span><span class="p">/</span><span class="n">Hs</span><span class="p">);</span>
+    <span class="n">dv</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">H</span><span class="o">*</span><span class="p">(</span><span class="n">dv</span><span class="p">(:)</span><span class="o">.</span><span class="p">/</span><span class="n">Hs</span><span class="p">);</span>
+  <span class="k">end</span>
+  <span class="c1">%% OPTIMALITY CRITERIA UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES</span>
+  <span class="n">l1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">l2</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span> <span class="nb">move</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">;</span>
+  <span class="k">while</span> <span class="p">(</span><span class="n">l2</span><span class="o">-</span><span class="n">l1</span><span class="p">)/(</span><span class="n">l1</span><span class="o">+</span><span class="n">l2</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-3</span>
+    <span class="n">lmid</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">l2</span><span class="o">+</span><span class="n">l1</span><span class="p">);</span>
+    <span class="n">xnew</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="nb">move</span><span class="p">,</span><span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="nb">move</span><span class="p">,</span><span class="n">x</span><span class="o">.*</span><span class="nb">sqrt</span><span class="p">(</span><span class="o">-</span><span class="n">dc</span><span class="o">.</span><span class="p">/</span><span class="n">dv</span><span class="p">/</span><span class="n">lmid</span><span class="p">)))));</span>
+    <span class="k">if</span> <span class="n">ft</span> <span class="o">==</span> <span class="mi">1</span>
+      <span class="n">xPhys</span> <span class="o">=</span> <span class="n">xnew</span><span class="p">;</span>
+    <span class="k">elseif</span> <span class="n">ft</span> <span class="o">==</span> <span class="mi">2</span>
+      <span class="n">xPhys</span><span class="p">(:)</span> <span class="o">=</span> <span class="p">(</span><span class="n">H</span><span class="o">*</span><span class="n">xnew</span><span class="p">(:))</span><span class="o">.</span><span class="p">/</span><span class="n">Hs</span><span class="p">;</span>
+    <span class="k">end</span>
+    <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">xPhys</span><span class="p">(:))</span> <span class="o">&gt;</span> <span class="n">volfrac</span><span class="o">*</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span> <span class="n">l1</span> <span class="o">=</span> <span class="n">lmid</span><span class="p">;</span> <span class="k">else</span> <span class="n">l2</span> <span class="o">=</span> <span class="n">lmid</span><span class="p">;</span> <span class="k">end</span>
+  <span class="k">end</span>
+  <span class="n">change</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">xnew</span><span class="p">(:)</span><span class="o">-</span><span class="n">x</span><span class="p">(:)));</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">xnew</span><span class="p">;</span>
+  <span class="c1">%% PRINT RESULTS</span>
+  <span class="nb">fprintf</span><span class="p">(</span><span class="s1">' It.:%5i Obj.:%11.4f Vol.:%7.3f ch.:%7.3f\n'</span><span class="p">,</span><span class="n">loop</span><span class="p">,</span><span class="n">c</span><span class="p">,</span> <span class="k">...</span>
+    <span class="nb">mean</span><span class="p">(</span><span class="n">xPhys</span><span class="p">(:)),</span><span class="n">change</span><span class="p">);</span>
+  <span class="c1">%% PLOT DENSITIES</span>
+  <span class="nb">colormap</span><span class="p">(</span><span class="nb">gray</span><span class="p">);</span> <span class="nb">imagesc</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">xPhys</span><span class="p">);</span> <span class="nb">caxis</span><span class="p">([</span><span class="mi">0</span> <span class="mi">1</span><span class="p">]);</span> <span class="nb">axis</span> <span class="n">equal</span><span class="p">;</span> <span class="nb">axis</span> <span class="n">off</span><span class="p">;</span> <span class="nb">drawnow</span><span class="p">;</span>
+<span class="k">end</span>
+<span class="c1">%</span>
+<span class="c1">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+<span class="c1">% This Matlab code was written by E. Andreassen, A. Clausen, M. Schevenels,%</span>
+<span class="c1">% B. S. Lazarov and O. Sigmund,  Department of Solid  Mechanics,           %</span>
+<span class="c1">%  Technical University of Denmark,                                        %</span>
+<span class="c1">%  DK-2800 Lyngby, Denmark.                                                %</span>
+<span class="c1">% Please sent your comments to: sigmund@fam.dtu.dk                         %</span>
+<span class="c1">%                                                                          %</span>
+<span class="c1">% The code is intended for educational purposes and theoretical details    %</span>
+<span class="c1">% are discussed in the paper                                               %</span>
+<span class="c1">% "Efficient topology optimization in MATLAB using 88 lines of code,       %</span>
+<span class="c1">% E. Andreassen, A. Clausen, M. Schevenels,                                %</span>
+<span class="c1">% B. S. Lazarov and O. Sigmund, Struct Multidisc Optim, 2010               %</span>
+<span class="c1">% This version is based on earlier 99-line code                            %</span>
+<span class="c1">% by Ole Sigmund (2001), Structural and Multidisciplinary Optimization,    %</span>
+<span class="c1">% Vol 21, pp. 120--127.                                                    %</span>
+<span class="c1">%                                                                          %</span>
+<span class="c1">% The code as well as a postscript version of the paper can be             %</span>
+<span class="c1">% downloaded from the web-site: http://www.topopt.dtu.dk                   %</span>
+<span class="c1">%                                                                          %</span>
+<span class="c1">% Disclaimer:                                                              %</span>
+<span class="c1">% The authors reserves all rights but do not guaranty that the code is     %</span>
+<span class="c1">% free from errors. Furthermore, we shall not be liable in any event       %</span>
+<span class="c1">% caused by the use of the program.                                        %</span>
+<span class="c1">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span></code></pre></figure>
+
+<p>Some details of the template code is explained as follows:</p>
+
+<h4 id="the-numbering-rule-for-elements-and-nodes">The numbering rule for elements and nodes</h4>
+<p>The template code assumes a rectangular design domain, where each element is modeled as a unit square. 
+The numbering of elements and nodes are explained in the figure below.</p>
+
+<p><img src="/_images/tutorial_topopt/topopt881.png" alt="Drawing" style="height: 300px;" /></p>
+
+<h4 id="input-parameters">Input parameters</h4>
+<p>Inputs to the program are (1) the number of elements in the x and y directions (<code class="language-plaintext highlighter-rouge">nelx</code> and <code class="language-plaintext highlighter-rouge">nely</code>), 
+(2) the volume fraction (<code class="language-plaintext highlighter-rouge">volfrac</code>, this is the number between 0 and 1 that specifies the
+ratio between the volume of the target topology and the maximum volume \(nelx \times nely\)), (3) the penalty
+parameter of the Young’s Modulus model (<code class="language-plaintext highlighter-rouge">penal</code>, usually <strong>=3</strong>), and (4) the filter radius (<code class="language-plaintext highlighter-rouge">rmin</code>, 
+usually <strong>=3</strong>).</p>
+
+<h4 id="material-properties">Material properties</h4>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">%% MATERIAL PROPERTIES</span>
+<span class="n">E0</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="n">Emin</span> <span class="o">=</span> <span class="mf">1e-9</span><span class="p">;</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">;</span></code></pre></figure>
+
+<p>Set the Young’s Modulus (<code class="language-plaintext highlighter-rouge">E0</code>), and the Poisson’s ratio (<code class="language-plaintext highlighter-rouge">nu</code>). Leave Emin as a small number.</p>
+
+<h4 id="define-loadings">Define loadings</h4>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="n">F</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span></code></pre></figure>
+
+<p>This line specifies the loading. Here <code class="language-plaintext highlighter-rouge">F</code> is a sparse column vector with <code class="language-plaintext highlighter-rouge">2(nely+1)(nelx+1)</code> elements.
+<code class="language-plaintext highlighter-rouge">(2,1,-1,\cdots)</code> specifies that there is a force of <strong>-1</strong> at the second row and first column
+of the vector. According to the numbering convention of this code, this is to say that in the y direction
+of the first node, there is a downward force of magnitude 1.</p>
+
+<h4 id="define-boundary-conditions-fixed-dofs">Define boundary conditions (Fixed DOFs)</h4>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="n">fixeddofs</span> <span class="o">=</span> <span class="nb">union</span><span class="p">([</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)],[</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)]);</span></code></pre></figure>
+
+<p>This line specifies the nodes with fixed DOFs. <code class="language-plaintext highlighter-rouge">[1:2:2*(nely+1)]</code> are x directions 
+of all nodes to the left side of the structure, and <code class="language-plaintext highlighter-rouge">2*(nelx+1)*(nely+1)</code> is the y direction
+of the last node (right bottom corner). See figure below:</p>
+
+<p><img src="/_images/tutorial_topopt/topopt882.png" alt="Drawing" style="height: 300px;" /></p>
+
+<p>Numbering of dofs, nodes, and elements in the 88 line code. <a name="notation"></a></p>
+
+<h4 id="filtering-of-sensitivity-gradient">Filtering of sensitivity (gradient)</h4>
+<p>Pure gradient descent may result in a topology with checkerboard patterns. See figure below. 
+While mathematically sound, such a solution can be infeasible from a manufacturing perspective or 
+too expensive to realize (e.g., through additive manufacturing of porous structures). Therefore, 
+a smoothed solution is often more preferred.</p>
+
+<p><img src="http://designer.mech.yzu.edu.tw/articlesystem/article/compressedfile/(2003-01-10)%20A%20review%20and%20generalization%20of%202-D%20structural%20topology%20optimization%20using%20material%20d.files/image226.jpg" alt="Drawing" style="height: 200px;" /></p>
+
+<p>In the code we prepare a Gaussian filter, through the following code:</p>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">%% PREPARE FILTER</span>
+<span class="n">iH</span> <span class="o">=</span> <span class="nb">ones</span><span class="p">(</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">jH</span> <span class="o">=</span> <span class="nb">ones</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">iH</span><span class="p">));</span>
+<span class="n">sH</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">iH</span><span class="p">));</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="k">for</span> <span class="n">i1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">nelx</span>
+  <span class="k">for</span> <span class="n">j1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">nely</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="p">(</span><span class="n">i1</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nely</span><span class="o">+</span><span class="n">j1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="n">i2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">i1</span><span class="o">-</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">nelx</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">j2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">j1</span><span class="o">-</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="n">j1</span><span class="o">+</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">nely</span><span class="p">)</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="p">(</span><span class="n">i2</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nely</span><span class="o">+</span><span class="n">j2</span><span class="p">;</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="n">iH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">e1</span><span class="p">;</span>
+        <span class="n">jH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">e2</span><span class="p">;</span>
+        <span class="n">sH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">rmin</span><span class="o">-</span><span class="nb">sqrt</span><span class="p">((</span><span class="n">i1</span><span class="o">-</span><span class="n">i2</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">j1</span><span class="o">-</span><span class="n">j2</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="p">));</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+<span class="n">H</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">iH</span><span class="p">,</span><span class="n">jH</span><span class="p">,</span><span class="n">sH</span><span class="p">);</span>
+<span class="n">Hs</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">H</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span></code></pre></figure>
+
+<p>The design sensitivity can then filtered by</p>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab">    <span class="n">dc</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">H</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">(:)</span><span class="o">.*</span><span class="n">dc</span><span class="p">(:))</span><span class="o">.</span><span class="p">/</span><span class="n">Hs</span><span class="o">.</span><span class="p">/</span><span class="nb">max</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">,</span><span class="n">x</span><span class="p">(:));</span></code></pre></figure>
+
+<h3 id="topology-optimization-with-local-density-constraints">Topology optimization with local density constraints</h3>
+<p>One drawback of the topology optimization formulation we discussed above is that the resultant topologies often
+have sparse structures (please test to see). In nature we observe structures that are denser and porous, e.g., 
+bones, nests, etc, with more connecting “beams” of smaller dimensions. One of the key benefit of such 
+structures is reliability, i.e., the failure of some beams will not drastically change the performance of the whole.
+Yet with sparse structures produced from our optimization, the reliability can be low.</p>
+
+<p><a href="https://arxiv.org/pdf/1608.04366.pdf">Wu et al.</a> recently proposed a formulation that incorporates 
+local density constraints instead of the global volume fraction constraint. The following sample code is 
+our implementation of Wu’s method on solving compliance problems.</p>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">%% This code follows Wu et al. (https://arxiv.org/pdf/1608.04366.pdf)</span>
+<span class="c1">%% Augmented Lagrangian is implemented instead of MMA.</span>
+
+<span class="c1">%% Input</span>
+<span class="n">nelx</span><span class="o">=</span><span class="mi">400</span><span class="p">;</span> <span class="c1">% horizontal length</span>
+<span class="n">nely</span><span class="o">=</span><span class="mi">200</span><span class="p">;</span> <span class="c1">% vertical length</span>
+<span class="nb">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">;</span> <span class="c1">% lobal volume fraction</span>
+<span class="n">alpha2</span><span class="o">=</span><span class="mf">0.6</span><span class="p">;</span> <span class="c1">% global volume fraction</span>
+<span class="nb">gamma</span><span class="o">=</span><span class="mf">3.0</span><span class="p">;</span> <span class="c1">% material binarization</span>
+<span class="n">rmin</span><span class="o">=</span><span class="mf">3.0</span><span class="p">;</span> <span class="c1">% filter radius</span>
+<span class="n">density_r</span> <span class="o">=</span> <span class="mf">6.0</span><span class="p">/</span><span class="mi">1</span><span class="p">;</span> <span class="c1">% density radius</span>
+
+<span class="c1">%% Algorithm parameters</span>
+<span class="n">p</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span> 
+<span class="nb">beta</span><span class="o">=</span><span class="mf">10.0</span><span class="p">;</span> 
+<span class="n">nn</span> <span class="o">=</span> <span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">;</span>
+<span class="n">epsilon_al</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span>
+<span class="n">epsilon_opt</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">;</span>
+
+<span class="c1">% PREPARE FILTER</span>
+<span class="c1">% create neighbourhood index for M (filtering)</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">rmin</span><span class="p">;</span>
+<span class="n">range</span> <span class="o">=</span> <span class="o">-</span><span class="n">r</span><span class="p">:</span><span class="n">r</span><span class="p">;</span>
+<span class="p">[</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="n">range</span><span class="p">,</span><span class="n">range</span><span class="p">);</span>
+<span class="n">neighbor</span> <span class="o">=</span> <span class="p">[</span><span class="n">X</span><span class="p">(:),</span> <span class="n">Y</span><span class="p">(:)];</span>
+<span class="n">D</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">neighbor</span><span class="o">.^</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+<span class="n">rn</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">D</span><span class="o">&lt;=</span><span class="n">r</span><span class="o">^</span><span class="mi">2</span> <span class="o">&amp;</span> <span class="n">D</span><span class="o">~=</span><span class="mi">0</span><span class="p">);</span>
+<span class="n">pattern</span> <span class="o">=</span> <span class="n">neighbor</span><span class="p">(</span><span class="n">D</span><span class="o">&lt;=</span><span class="n">r</span><span class="o">^</span><span class="mi">2</span> <span class="o">&amp;</span> <span class="n">D</span><span class="o">~=</span><span class="mi">0</span><span class="p">,:);</span>
+<span class="p">[</span><span class="n">locX</span><span class="p">,</span> <span class="n">locY</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nelx</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nely</span><span class="p">);</span>
+<span class="n">loc</span> <span class="o">=</span> <span class="p">[</span><span class="n">locY</span><span class="p">(:),</span><span class="n">locX</span><span class="p">(:)];</span>
+<span class="n">M</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="n">rn</span><span class="p">);</span>
+<span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">nn</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">rn</span>
+        <span class="n">locc</span> <span class="o">=</span> <span class="n">loc</span><span class="p">(</span><span class="n">i</span><span class="p">,:)</span> <span class="o">+</span> <span class="n">pattern</span><span class="p">(</span><span class="n">j</span><span class="p">,:);</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">locc</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="nb">sum</span><span class="p">(</span><span class="n">locc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">&gt;</span><span class="n">nely</span><span class="p">)</span><span class="o">+</span><span class="nb">sum</span><span class="p">(</span><span class="n">locc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">&gt;</span><span class="n">nelx</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span>
+            <span class="n">M</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="n">locc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">locc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nely</span><span class="p">;</span>
+        <span class="k">else</span>
+            <span class="n">M</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="nb">NaN</span><span class="p">;</span>
+        <span class="k">end</span>
+    <span class="k">end</span>
+<span class="k">end</span>
+<span class="c1">% M_t = M';</span>
+<span class="c1">% idx = kron((1:nn)',ones(rn,1));</span>
+<span class="c1">% idy = M_t(~isnan(M_t));</span>
+<span class="c1">% idx(isnan(M_t))=[];</span>
+<span class="c1">% bigM = sparse(idx,idy,1);</span>
+<span class="n">iH</span> <span class="o">=</span> <span class="nb">ones</span><span class="p">(</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">jH</span> <span class="o">=</span> <span class="nb">ones</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">iH</span><span class="p">));</span>
+<span class="n">sH</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">iH</span><span class="p">));</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="k">for</span> <span class="n">i1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">nelx</span>
+  <span class="k">for</span> <span class="n">j1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">nely</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="p">(</span><span class="n">i1</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nely</span><span class="o">+</span><span class="n">j1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="n">i2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">i1</span><span class="o">-</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">nelx</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">j2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">j1</span><span class="o">-</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="n">j1</span><span class="o">+</span><span class="p">(</span><span class="nb">ceil</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">nely</span><span class="p">)</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="p">(</span><span class="n">i2</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nely</span><span class="o">+</span><span class="n">j2</span><span class="p">;</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="n">iH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">e1</span><span class="p">;</span>
+        <span class="n">jH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">e2</span><span class="p">;</span>
+        <span class="n">sH</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">rmin</span><span class="o">-</span><span class="nb">sqrt</span><span class="p">((</span><span class="n">i1</span><span class="o">-</span><span class="n">i2</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">j1</span><span class="o">-</span><span class="n">j2</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="p">));</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+<span class="n">H</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">iH</span><span class="p">,</span><span class="n">jH</span><span class="p">,</span><span class="n">sH</span><span class="p">);</span>
+<span class="n">Hs</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">H</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+<span class="n">bigM</span> <span class="o">=</span> <span class="n">H</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">;</span>
+
+<span class="c1">% create neighbourhood index for N (local density)</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">density_r</span><span class="p">;</span>
+<span class="n">range</span> <span class="o">=</span> <span class="o">-</span><span class="n">r</span><span class="p">:</span><span class="n">r</span><span class="p">;</span>
+<span class="nb">mesh</span> <span class="o">=</span> <span class="n">range</span><span class="p">;</span>
+<span class="p">[</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="n">range</span><span class="p">,</span><span class="n">range</span><span class="p">);</span>
+<span class="n">neighbor</span> <span class="o">=</span> <span class="p">[</span><span class="n">X</span><span class="p">(:),</span> <span class="n">Y</span><span class="p">(:)];</span>
+<span class="n">D</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">neighbor</span><span class="o">.^</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+<span class="n">rn</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">D</span><span class="o">&lt;=</span><span class="n">r</span><span class="o">^</span><span class="mi">2</span><span class="p">);</span>
+<span class="n">pattern</span> <span class="o">=</span> <span class="n">neighbor</span><span class="p">(</span><span class="n">D</span><span class="o">&lt;=</span><span class="n">r</span><span class="o">^</span><span class="mi">2</span><span class="p">,:);</span>
+<span class="p">[</span><span class="n">locX</span><span class="p">,</span> <span class="n">locY</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nelx</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nely</span><span class="p">);</span>
+<span class="n">loc</span> <span class="o">=</span> <span class="p">[</span><span class="n">locY</span><span class="p">(:),</span> <span class="n">locX</span><span class="p">(:)];</span>
+<span class="n">N</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="n">rn</span><span class="p">);</span>
+<span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">nn</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">rn</span>
+        <span class="n">locc</span> <span class="o">=</span> <span class="n">loc</span><span class="p">(</span><span class="n">i</span><span class="p">,:)</span> <span class="o">+</span> <span class="n">pattern</span><span class="p">(</span><span class="n">j</span><span class="p">,:);</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">locc</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="nb">sum</span><span class="p">(</span><span class="n">locc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">&gt;</span><span class="n">nely</span><span class="p">)</span><span class="o">+</span><span class="nb">sum</span><span class="p">(</span><span class="n">locc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">&gt;</span><span class="n">nelx</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span>
+            <span class="n">N</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="n">locc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">locc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nely</span><span class="p">;</span>
+        <span class="k">else</span>
+            <span class="n">N</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="nb">NaN</span><span class="p">;</span>
+        <span class="k">end</span>
+    <span class="k">end</span>
+<span class="k">end</span>
+<span class="n">idx</span> <span class="o">=</span> <span class="nb">kron</span><span class="p">((</span><span class="mi">1</span><span class="p">:</span><span class="n">nn</span><span class="p">)</span><span class="o">'</span><span class="p">,</span><span class="nb">ones</span><span class="p">(</span><span class="n">rn</span><span class="p">,</span><span class="mi">1</span><span class="p">));</span>
+<span class="n">N_t</span> <span class="o">=</span> <span class="n">N</span><span class="o">'</span><span class="p">;</span>
+<span class="n">idy</span> <span class="o">=</span> <span class="n">N_t</span><span class="p">(</span><span class="o">~</span><span class="nb">isnan</span><span class="p">(</span><span class="n">N_t</span><span class="p">));</span>
+<span class="n">idx</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">N_t</span><span class="p">))</span><span class="o">=</span><span class="p">[];</span>
+<span class="n">bigN</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span><span class="n">idy</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">N_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="o">~</span><span class="nb">isnan</span><span class="p">(</span><span class="n">N</span><span class="p">),</span><span class="mi">2</span><span class="p">);</span>
+
+<span class="c1">%% MATERIAL PROPERTIES</span>
+<span class="n">E0</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="n">Emin</span> <span class="o">=</span> <span class="mf">1e-9</span><span class="p">;</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">;</span>
+
+<span class="c1">%% PREPARE FINITE ELEMENT ANALYSIS</span>
+<span class="n">A11</span> <span class="o">=</span> <span class="p">[</span><span class="mi">12</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">6</span> <span class="o">-</span><span class="mi">3</span><span class="p">;</span>  <span class="mi">3</span> <span class="mi">12</span>  <span class="mi">3</span>  <span class="mi">0</span><span class="p">;</span> <span class="o">-</span><span class="mi">6</span>  <span class="mi">3</span> <span class="mi">12</span> <span class="o">-</span><span class="mi">3</span><span class="p">;</span> <span class="o">-</span><span class="mi">3</span>  <span class="mi">0</span> <span class="o">-</span><span class="mi">3</span> <span class="mi">12</span><span class="p">];</span>
+<span class="n">A12</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">6</span> <span class="o">-</span><span class="mi">3</span>  <span class="mi">0</span>  <span class="mi">3</span><span class="p">;</span> <span class="o">-</span><span class="mi">3</span> <span class="o">-</span><span class="mi">6</span> <span class="o">-</span><span class="mi">3</span> <span class="o">-</span><span class="mi">6</span><span class="p">;</span>  <span class="mi">0</span> <span class="o">-</span><span class="mi">3</span> <span class="o">-</span><span class="mi">6</span>  <span class="mi">3</span><span class="p">;</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">6</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">6</span><span class="p">];</span>
+<span class="n">B11</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">4</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">2</span>  <span class="mi">9</span><span class="p">;</span>  <span class="mi">3</span> <span class="o">-</span><span class="mi">4</span> <span class="o">-</span><span class="mi">9</span>  <span class="mi">4</span><span class="p">;</span> <span class="o">-</span><span class="mi">2</span> <span class="o">-</span><span class="mi">9</span> <span class="o">-</span><span class="mi">4</span> <span class="o">-</span><span class="mi">3</span><span class="p">;</span>  <span class="mi">9</span>  <span class="mi">4</span> <span class="o">-</span><span class="mi">3</span> <span class="o">-</span><span class="mi">4</span><span class="p">];</span>
+<span class="n">B12</span> <span class="o">=</span> <span class="p">[</span> <span class="mi">2</span> <span class="o">-</span><span class="mi">3</span>  <span class="mi">4</span> <span class="o">-</span><span class="mi">9</span><span class="p">;</span> <span class="o">-</span><span class="mi">3</span>  <span class="mi">2</span>  <span class="mi">9</span> <span class="o">-</span><span class="mi">2</span><span class="p">;</span>  <span class="mi">4</span>  <span class="mi">9</span>  <span class="mi">2</span>  <span class="mi">3</span><span class="p">;</span> <span class="o">-</span><span class="mi">9</span> <span class="o">-</span><span class="mi">2</span>  <span class="mi">3</span>  <span class="mi">2</span><span class="p">];</span>
+<span class="n">KE</span> <span class="o">=</span> <span class="mi">1</span><span class="p">/(</span><span class="mi">1</span><span class="o">-</span><span class="n">nu</span><span class="o">^</span><span class="mi">2</span><span class="p">)/</span><span class="mi">24</span><span class="o">*</span><span class="p">([</span><span class="n">A11</span> <span class="n">A12</span><span class="p">;</span><span class="n">A12</span><span class="s1">' A11]+nu*[B11 B12;B12'</span> <span class="n">B11</span><span class="p">]);</span>
+<span class="n">nodenrs</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">:(</span><span class="mi">1</span><span class="o">+</span><span class="n">nelx</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">nely</span><span class="p">),</span><span class="mi">1</span><span class="o">+</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="o">+</span><span class="n">nelx</span><span class="p">);</span>
+<span class="n">edofVec</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">nodenrs</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">edofMat</span> <span class="o">=</span> <span class="nb">repmat</span><span class="p">(</span><span class="n">edofVec</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span><span class="o">+</span><span class="nb">repmat</span><span class="p">([</span><span class="mi">0</span> <span class="mi">1</span> <span class="mi">2</span><span class="o">*</span><span class="n">nely</span><span class="o">+</span><span class="p">[</span><span class="mi">2</span> <span class="mi">3</span> <span class="mi">0</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span><span class="mi">2</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">iK</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="nb">kron</span><span class="p">(</span><span class="n">edofMat</span><span class="p">,</span><span class="nb">ones</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">'</span><span class="p">,</span><span class="mi">64</span><span class="o">*</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">jK</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="nb">kron</span><span class="p">(</span><span class="n">edofMat</span><span class="p">,</span><span class="nb">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span><span class="o">'</span><span class="p">,</span><span class="mi">64</span><span class="o">*</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+
+<span class="c1">% DEFINE LOADS AND SUPPORTS (HALF MBB-BEAM)</span>
+<span class="n">F</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">((</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">nelx</span><span class="o">+</span><span class="n">nely</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">U</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">fixeddofs</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">alldofs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)];</span>
+<span class="n">freedofs</span> <span class="o">=</span> <span class="nb">setdiff</span><span class="p">(</span><span class="n">alldofs</span><span class="p">,</span><span class="n">fixeddofs</span><span class="p">);</span>
+
+<span class="c1">%prepare some stuff to reduce cost</span>
+<span class="n">dphi_idphi</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">rdivide</span><span class="p">,</span><span class="n">H</span><span class="p">,</span><span class="nb">sum</span><span class="p">(</span><span class="n">H</span><span class="p">));</span>
+
+<span class="c1">%% START ITERATION</span>
+<span class="n">phi</span> <span class="o">=</span> <span class="nb">alpha</span><span class="o">*</span><span class="nb">ones</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">loop</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">delta</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+<span class="nb">count</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+<span class="n">count_final</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span>
+
+<span class="nb">figure</span>
+<span class="k">while</span> <span class="nb">beta</span> <span class="o">&lt;</span> <span class="mi">3000</span>
+    <span class="k">if</span> <span class="nb">mod</span><span class="p">(</span><span class="n">loop</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span>
+        <span class="nb">step</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">end</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">loop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">loop2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="c1">%augmented lagrangian parameters</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">;</span>
+    <span class="n">lambda</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">lambda2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">eta</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">;</span>
+    <span class="n">eta2</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">;</span>
+    <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">dphi</span> <span class="o">=</span> <span class="mf">1e6</span><span class="p">;</span>
+    
+    <span class="c1">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+    <span class="c1">%%%%%%%%%% Get initial g and c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+    <span class="n">phi_til</span> <span class="o">=</span> <span class="n">H</span><span class="o">*</span><span class="n">phi</span><span class="p">(:)</span><span class="o">.</span><span class="p">/</span><span class="n">Hs</span><span class="p">;</span>  
+    <span class="n">rho</span> <span class="o">=</span> <span class="p">(</span><span class="nb">tanh</span><span class="p">(</span><span class="nb">beta</span><span class="p">/</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="nb">tanh</span><span class="p">(</span><span class="nb">beta</span><span class="o">*</span><span class="p">(</span><span class="n">phi_til</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)))/(</span><span class="mi">2</span><span class="o">*</span><span class="nb">tanh</span><span class="p">(</span><span class="nb">beta</span><span class="p">/</span><span class="mi">2</span><span class="p">));</span>
+    <span class="n">sK</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="n">KE</span><span class="p">(:)</span><span class="o">*</span><span class="p">(</span><span class="n">Emin</span><span class="o">+</span><span class="n">rho</span><span class="p">(:)</span><span class="o">'.^</span><span class="nb">gamma</span><span class="o">*</span><span class="p">(</span><span class="n">E0</span><span class="o">-</span><span class="n">Emin</span><span class="p">)),</span><span class="mi">64</span><span class="o">*</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">iK</span><span class="p">,</span><span class="n">jK</span><span class="p">,</span><span class="n">sK</span><span class="p">);</span> <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span><span class="o">+</span><span class="n">K</span><span class="o">'</span><span class="p">)/</span><span class="mi">2</span><span class="p">;</span> 
+    <span class="n">U</span><span class="p">(</span><span class="n">freedofs</span><span class="p">)</span> <span class="o">=</span> <span class="n">K</span><span class="p">(</span><span class="n">freedofs</span><span class="p">,</span><span class="n">freedofs</span><span class="p">)\</span><span class="n">F</span><span class="p">(</span><span class="n">freedofs</span><span class="p">);</span>
+    <span class="n">ce</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">((</span><span class="n">U</span><span class="p">(</span><span class="n">edofMat</span><span class="p">)</span><span class="o">*</span><span class="n">KE</span><span class="p">)</span><span class="o">.*</span><span class="n">U</span><span class="p">(</span><span class="n">edofMat</span><span class="p">),</span><span class="mi">2</span><span class="p">);</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">sum</span><span class="p">((</span><span class="n">Emin</span><span class="o">+</span><span class="n">rho</span><span class="p">(:)</span><span class="o">.^</span><span class="nb">gamma</span><span class="o">*</span><span class="p">(</span><span class="n">E0</span><span class="o">-</span><span class="n">Emin</span><span class="p">))</span><span class="o">.*</span><span class="n">ce</span><span class="p">));</span>  
+    <span class="n">rho_bar</span> <span class="o">=</span> <span class="n">bigN</span><span class="o">*</span><span class="n">rho</span><span class="o">.</span><span class="p">/</span><span class="n">N_count</span><span class="p">;</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">rho_bar</span><span class="o">.^</span><span class="n">p</span><span class="p">)/</span><span class="n">nely</span><span class="p">/</span><span class="n">nelx</span><span class="p">)</span><span class="o">^</span><span class="p">(</span><span class="mi">1</span><span class="p">/</span><span class="n">p</span><span class="p">)/</span><span class="nb">alpha</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">;</span>
+    <span class="n">global_density</span> <span class="o">=</span> <span class="n">rho</span><span class="o">'*</span><span class="nb">ones</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="mi">1</span><span class="p">)/</span><span class="n">nn</span><span class="o">-</span><span class="n">alpha2</span><span class="p">;</span>
+    <span class="c1">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+    
+    <span class="n">phi_old</span> <span class="o">=</span> <span class="n">phi</span><span class="p">;</span>
+    
+    <span class="k">while</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">full</span><span class="p">(</span><span class="n">dphi</span><span class="p">)))</span><span class="o">&lt;</span><span class="n">epsilon_al</span> <span class="o">&amp;&amp;</span> <span class="n">g</span><span class="o">&lt;</span><span class="mf">0.005</span> <span class="o">&amp;&amp;</span> <span class="n">loop2</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="n">loop2</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">)</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="k">end</span>
+        <span class="n">loop2</span> <span class="o">=</span> <span class="n">loop2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">dphi</span> <span class="o">=</span> <span class="mf">1e6</span><span class="p">;</span>
+        <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">j2</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+        <span class="n">loop3</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        
+        <span class="k">while</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">full</span><span class="p">(</span><span class="n">dphi</span><span class="p">)))</span> <span class="o">&gt;</span> <span class="n">epsilon</span> <span class="o">&amp;&amp;</span> <span class="n">loop3</span> <span class="o">&lt;</span> <span class="mi">10000</span>
+            <span class="n">loop3</span> <span class="o">=</span> <span class="n">loop3</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+            <span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">;</span>
+
+            <span class="n">dc_drho</span> <span class="o">=</span> <span class="o">-</span><span class="nb">gamma</span><span class="o">*</span><span class="n">rho</span><span class="o">.^</span><span class="p">(</span><span class="nb">gamma</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">E0</span><span class="o">-</span><span class="n">Emin</span><span class="p">)</span><span class="o">.*</span><span class="n">ce</span><span class="p">(:);</span> 
+            <span class="n">drho_dphi</span> <span class="o">=</span> <span class="nb">beta</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="nb">tanh</span><span class="p">(</span><span class="nb">beta</span><span class="o">*</span><span class="p">(</span><span class="n">phi</span><span class="p">(:)</span><span class="o">-</span><span class="mf">0.5</span><span class="p">))</span><span class="o">.^</span><span class="mi">2</span><span class="p">)/</span><span class="mi">2</span><span class="p">/</span><span class="nb">tanh</span><span class="p">(</span><span class="nb">beta</span><span class="p">/</span><span class="mi">2</span><span class="p">);</span>
+            <span class="n">dc_dphi</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">bigM</span><span class="o">.*</span><span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">times</span><span class="p">,</span> <span class="n">dphi_idphi</span><span class="p">,</span> <span class="p">(</span><span class="n">dc_drho</span><span class="o">.*</span><span class="n">drho_dphi</span><span class="p">)</span><span class="o">'</span><span class="p">),</span><span class="mi">2</span><span class="p">);</span>
+            <span class="n">dg_drhobar</span> <span class="o">=</span> <span class="mi">1</span><span class="p">/</span><span class="nb">alpha</span><span class="p">/</span><span class="n">nn</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="p">/</span><span class="n">nn</span><span class="o">*</span><span class="nb">sum</span><span class="p">(</span><span class="n">rho_bar</span><span class="o">.^</span><span class="n">p</span><span class="p">))</span><span class="o">.^</span><span class="p">(</span><span class="mi">1</span><span class="p">/</span><span class="n">p</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.*</span><span class="n">rho_bar</span><span class="o">.^</span><span class="p">(</span><span class="n">p</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+            <span class="n">dg_dphi</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">bigM</span><span class="o">.*</span><span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">times</span><span class="p">,</span> <span class="n">dphi_idphi</span><span class="p">,</span> <span class="p">(</span><span class="n">bigN</span><span class="o">*</span><span class="p">(</span><span class="n">dg_drhobar</span><span class="o">.</span><span class="p">/</span><span class="n">N_count</span><span class="p">)</span><span class="o">.*</span><span class="n">drho_dphi</span><span class="p">)</span><span class="o">'</span><span class="p">),</span><span class="mi">2</span><span class="p">);</span>
+            <span class="n">dphi</span> <span class="o">=</span> <span class="n">dc_dphi</span> <span class="o">+</span> <span class="n">lambda</span><span class="o">*</span><span class="n">dg_dphi</span><span class="o">*</span><span class="p">(</span><span class="n">g</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">/</span><span class="n">r</span><span class="o">*</span><span class="n">g</span><span class="o">*</span><span class="n">dg_dphi</span><span class="o">*</span><span class="p">(</span><span class="n">g</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span><span class="k">...</span>
+                <span class="n">lambda2</span><span class="o">*</span><span class="nb">ones</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="mi">1</span><span class="p">)/</span><span class="n">nn</span><span class="o">*</span><span class="p">(</span><span class="n">global_density</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">/</span><span class="n">r2</span><span class="o">*</span><span class="n">global_density</span><span class="p">/</span><span class="n">nn</span><span class="p">/</span><span class="n">nn</span><span class="o">*</span><span class="nb">ones</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">global_density</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">);</span>
+            
+            <span class="c1">% check if learning rate is too large</span>
+            <span class="n">g_old</span> <span class="o">=</span> <span class="n">g</span><span class="p">;</span>
+            <span class="n">global_density_old</span> <span class="o">=</span> <span class="n">global_density</span><span class="p">;</span>
+            <span class="n">c_old</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+            <span class="n">loop4</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+            <span class="k">while</span> <span class="n">loop4</span> <span class="o">&lt;</span> <span class="mi">10</span>
+                <span class="n">delta</span> <span class="o">=</span> <span class="o">-</span><span class="n">dphi</span><span class="o">*</span><span class="n">learning_rate</span><span class="p">;</span>
+                <span class="n">phi_temp</span> <span class="o">=</span> <span class="n">phi</span> <span class="o">+</span> <span class="n">delta</span><span class="p">;</span>
+                <span class="n">phi_til</span> <span class="o">=</span> <span class="n">H</span><span class="o">*</span><span class="n">phi_temp</span><span class="p">(:)</span><span class="o">.</span><span class="p">/</span><span class="n">Hs</span><span class="p">;</span>  
+                <span class="n">rho_temp</span> <span class="o">=</span> <span class="p">(</span><span class="nb">tanh</span><span class="p">(</span><span class="nb">beta</span><span class="p">/</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="nb">tanh</span><span class="p">(</span><span class="nb">beta</span><span class="o">*</span><span class="p">(</span><span class="n">phi_til</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)))/(</span><span class="mi">2</span><span class="o">*</span><span class="nb">tanh</span><span class="p">(</span><span class="nb">beta</span><span class="p">/</span><span class="mi">2</span><span class="p">));</span>
+                <span class="n">rho_bar_temp</span> <span class="o">=</span> <span class="n">bigN</span><span class="o">*</span><span class="n">rho_temp</span><span class="o">.</span><span class="p">/</span><span class="n">N_count</span><span class="p">;</span>
+                <span class="n">g_temp</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">rho_bar_temp</span><span class="o">.^</span><span class="n">p</span><span class="p">)/</span><span class="n">nely</span><span class="p">/</span><span class="n">nelx</span><span class="p">)</span><span class="o">^</span><span class="p">(</span><span class="mi">1</span><span class="p">/</span><span class="n">p</span><span class="p">)/</span><span class="nb">alpha</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">;</span>
+                <span class="n">global_density_temp</span> <span class="o">=</span> <span class="n">rho_temp</span><span class="o">'*</span><span class="nb">ones</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="mi">1</span><span class="p">)/</span><span class="n">nn</span><span class="o">-</span><span class="n">alpha2</span><span class="p">;</span>
+                <span class="n">sK</span> <span class="o">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="n">KE</span><span class="p">(:)</span><span class="o">*</span><span class="p">(</span><span class="n">Emin</span><span class="o">+</span><span class="n">rho_temp</span><span class="p">(:)</span><span class="o">'.^</span><span class="nb">gamma</span><span class="o">*</span><span class="p">(</span><span class="n">E0</span><span class="o">-</span><span class="n">Emin</span><span class="p">)),</span><span class="mi">64</span><span class="o">*</span><span class="n">nelx</span><span class="o">*</span><span class="n">nely</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+                <span class="n">K</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">iK</span><span class="p">,</span><span class="n">jK</span><span class="p">,</span><span class="n">sK</span><span class="p">);</span> <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span><span class="o">+</span><span class="n">K</span><span class="o">'</span><span class="p">)/</span><span class="mi">2</span><span class="p">;</span> 
+                <span class="n">U</span><span class="p">(</span><span class="n">freedofs</span><span class="p">)</span> <span class="o">=</span> <span class="n">K</span><span class="p">(</span><span class="n">freedofs</span><span class="p">,</span><span class="n">freedofs</span><span class="p">)\</span><span class="n">F</span><span class="p">(</span><span class="n">freedofs</span><span class="p">);</span>
+                <span class="n">ce_temp</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">((</span><span class="n">U</span><span class="p">(</span><span class="n">edofMat</span><span class="p">)</span><span class="o">*</span><span class="n">KE</span><span class="p">)</span><span class="o">.*</span><span class="n">U</span><span class="p">(</span><span class="n">edofMat</span><span class="p">),</span><span class="mi">2</span><span class="p">);</span>
+                <span class="n">c_temp</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">sum</span><span class="p">((</span><span class="n">Emin</span><span class="o">+</span><span class="n">rho_temp</span><span class="p">(:)</span><span class="o">.^</span><span class="nb">gamma</span><span class="o">*</span><span class="p">(</span><span class="n">E0</span><span class="o">-</span><span class="n">Emin</span><span class="p">))</span><span class="o">.*</span><span class="n">ce_temp</span><span class="p">));</span>
+                <span class="n">dobj</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_temp</span> <span class="o">+</span> <span class="n">lambda</span><span class="o">*</span><span class="n">g_temp</span><span class="o">*</span><span class="p">(</span><span class="n">g_temp</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">/</span><span class="n">r</span><span class="o">*</span><span class="n">g_temp</span><span class="o">^</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">g_temp</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">/</span><span class="n">r2</span><span class="o">*</span><span class="n">global_density_temp</span><span class="o">^</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">global_density_temp</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">))</span><span class="o">-</span><span class="k">...</span>
+                    <span class="p">(</span><span class="n">c_old</span> <span class="o">+</span> <span class="n">lambda</span><span class="o">*</span><span class="n">g_old</span><span class="o">*</span><span class="p">(</span><span class="n">g_old</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">/</span><span class="n">r</span><span class="o">*</span><span class="n">g_old</span><span class="o">^</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">g_old</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">/</span><span class="n">r2</span><span class="o">*</span><span class="n">global_density_old</span><span class="o">^</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">global_density_old</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">));</span>
+                <span class="k">if</span> <span class="n">dobj</span><span class="o">&gt;</span><span class="mi">0</span>
+                    <span class="n">learning_rate</span> <span class="o">=</span> <span class="n">learning_rate</span><span class="o">*</span><span class="mf">0.5</span><span class="p">;</span>
+                    <span class="n">loop4</span> <span class="o">=</span> <span class="n">loop4</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+                    <span class="k">if</span> <span class="n">loop4</span> <span class="o">==</span> <span class="mi">10</span>
+                        <span class="n">loop3</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">;</span>
+                        <span class="n">dphi</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+                    <span class="k">end</span>
+                <span class="k">else</span>
+                    <span class="n">phi</span> <span class="o">=</span> <span class="n">phi_temp</span><span class="p">;</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="n">c_temp</span><span class="p">;</span>
+                    <span class="n">g</span> <span class="o">=</span> <span class="n">g_temp</span><span class="p">;</span>
+                    <span class="n">ce</span> <span class="o">=</span> <span class="n">ce_temp</span><span class="p">;</span>
+                    <span class="n">rho</span> <span class="o">=</span> <span class="n">rho_temp</span><span class="p">;</span>
+                    <span class="n">rho_bar</span> <span class="o">=</span> <span class="n">rho_bar_temp</span><span class="p">;</span>
+                    <span class="n">global_density</span> <span class="o">=</span> <span class="n">global_density_temp</span><span class="p">;</span>
+                    <span class="k">break</span><span class="p">;</span>
+                <span class="k">end</span>
+            <span class="k">end</span>
+            <span class="c1">%% PRINT RESULTS</span>
+            
+            <span class="nb">fprintf</span><span class="p">(</span><span class="s1">' It.:%5i Obj.:%11.4f g:%7.3f eta:%7.3f r:%7.3f ch.:%7.3f\n'</span><span class="p">,</span><span class="n">loop</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="k">...</span>
+            <span class="n">g</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="nb">log</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">full</span><span class="p">(</span><span class="n">dphi</span><span class="p">))));</span>
+            
+            <span class="c1">%% PLOT DENSITIES</span>
+            <span class="nb">colormap</span><span class="p">(</span><span class="nb">gray</span><span class="p">);</span> <span class="nb">imagesc</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="nb">reshape</span><span class="p">(</span><span class="n">rho</span><span class="p">,[</span><span class="n">nely</span><span class="p">,</span><span class="n">nelx</span><span class="p">]));</span> <span class="nb">caxis</span><span class="p">([</span><span class="mi">0</span> <span class="mi">1</span><span class="p">]);</span> <span class="nb">axis</span> <span class="n">equal</span><span class="p">;</span> <span class="nb">axis</span> <span class="n">off</span><span class="p">;</span> <span class="nb">drawnow</span><span class="p">;</span>
+           
+            <span class="k">if</span> <span class="nb">mod</span><span class="p">(</span><span class="nb">count</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span>
+                <span class="nb">saveas</span><span class="p">(</span><span class="nb">gcf</span><span class="p">,</span><span class="nb">sprintf</span><span class="p">(</span><span class="s1">'infill%d.png'</span><span class="p">,</span><span class="n">count_final</span><span class="p">))</span>
+                <span class="n">count_final</span><span class="o">=</span><span class="n">count_final</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="nb">count</span><span class="o">=</span><span class="nb">count</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="k">end</span>
+        
+        <span class="k">if</span> <span class="n">g</span><span class="o">&lt;</span><span class="n">eta</span>
+            <span class="n">lambda</span> <span class="o">=</span> <span class="n">lambda</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">g</span><span class="p">/</span><span class="n">r</span><span class="p">;</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span><span class="o">*</span><span class="mf">0.5</span><span class="p">;</span>
+        <span class="k">else</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">r</span><span class="p">;</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">end</span>
+        
+        <span class="k">if</span> <span class="n">global_density</span><span class="o">&lt;</span><span class="n">eta2</span>
+            <span class="n">lambda2</span> <span class="o">=</span> <span class="n">lambda2</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">global_density</span><span class="p">/</span><span class="n">r2</span><span class="p">;</span>
+            <span class="n">j2</span> <span class="o">=</span> <span class="n">j2</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+            <span class="n">eta2</span> <span class="o">=</span> <span class="n">eta2</span><span class="o">*</span><span class="mf">0.5</span><span class="p">;</span>
+        <span class="k">else</span>
+            <span class="n">r2</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">r2</span><span class="p">;</span>
+            <span class="n">j2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">end</span>
+    <span class="k">end</span>    
+    
+    <span class="n">delta</span> <span class="o">=</span> <span class="nb">full</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">phi</span><span class="o">-</span><span class="n">phi_old</span><span class="p">)));</span>
+
+    <span class="c1">% step 17</span>
+    <span class="nb">beta</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="nb">beta</span><span class="p">;</span>
+
+<span class="k">end</span></code></pre></figure>
+
+:ET

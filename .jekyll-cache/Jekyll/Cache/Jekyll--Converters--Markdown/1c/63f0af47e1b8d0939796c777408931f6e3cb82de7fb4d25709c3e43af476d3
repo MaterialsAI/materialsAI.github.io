@@ -1,0 +1,181 @@
+I"a&<h1 id="iot---flex-sensor-hookup-guide---mae540-2017-team-5">IoT - Flex Sensor Hookup Guide - MAE540-2017 Team 5</h1>
+
+<h2 id="1a-narrative-of-the-application">1.A narrative of the application</h2>
+<p>1.Robotics: Controlling  joint movement or placement, bumper switches for wall detection
+2.Bio metrics: Athletic equipment to indicate placement or movement
+3.Virtual reality gaming gloves
+Could also be used in automotive and industrial controls, computer peripherals, joysticks, measuring devices, musical instruments, fitness products, etc</p>
+
+<h2 id="2-an-introduction-to-the-sensor">2. An introduction to the sensor</h2>
+<p><strong>Flex sensors</strong> also called <strong>bend sensors</strong>, measure the amount of deflection caused by bending the sensor. This sensor is based on resistive carbon elements that achieve great form-factor on a thin flexible substrate. When the substrate is bent, the sensor produces a resistance output correlated to the bend radius-the smaller the radius, the higher the resistance value. A property of bend sensors is that bending the sensor at one point to a prescribed angle is not the most effective use of the sensor. As well, bending the sensor at one point to more than 90F may permanently damage the sensor. Instead, the sensor is bent around a radius of curvature.</p>
+
+<h3 id="item-list">Item list</h3>
+<p>You will need the following:</p>
+
+<ol>
+  <li><strong><a href="https://www.sparkfun.com/products/13231">The SparkFun ESP8266 Thing board</a></strong></li>
+  <li><strong><a href="https://www.sparkfun.com/products/9716">FTDI Basic -3.3V</a></strong></li>
+  <li><strong>SparkFun Cerberus USB Cable</strong></li>
+  <li><strong>Jumper Wires and a Breadboard</strong></li>
+  <li>** <a href="https://www.sparkfun.com/products/8606">Flex Sensor 4.5” </a>**</li>
+  <li><a href="https://learn.sparkfun.com/tutorials/resistors">Resistors</a></li>
+</ol>
+
+<h3 id="hardware-setup">Hardware setup</h3>
+<p>To test the basic functionality, we will use the following hookup.</p>
+
+<p>Hookup
+<img src="/_images/tutorial_iot/flexsensor/hookup2.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<h2 id="3-a-schematic-of-the-hookup">3. A schematic of the hookup</h2>
+<p>Schematic
+<img src="/_images/tutorial_iot/flexsensor/hookup1.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<h3 id="connection-between-ftdi-and-esp8266">Connection between FTDI and ESP8266</h3>
+<p>FTDI | ESP8266
+———— | ————-
+DTR | DTR
+RX1 | TX0
+TX0 | RX1
+5V | 3V3
+GND | GND</p>
+
+<h3 id="connection-between-flex-sensor-and-esp8266">Connection between Flex Sensor and ESP8266</h3>
+<p>Flex Sensor | ESP8266
+———— | ————-
+One of the legs | 3V3
+Second Leg | ADC</p>
+
+<p>Resistor to be connected between GDC and ADC which will act as a voltage divider.</p>
+<h2 id="4-the-arduino-code-and-related-installation-guide-of-necessary-packages">4. The Arduino code and related installation guide of necessary packages</h2>
+
+<h3 id="software-setup">Software setup</h3>
+<p>The following setup should work for both Windows and Linux.</p>
+
+<ol>
+  <li>Download the <a href="https://www.sparkfun.com/products/9716">Arduino IDE</a> and install. It’s free.</li>
+  <li>Open the Arduino IDE. Install ESP8266 Arduino Addon:
+    <ul>
+      <li>Go to <strong>File &gt; Preference</strong>, type
+<code class="language-plaintext highlighter-rouge">http://arduino.esp8266.com/stable/package_esp8266com_index.json</code>
+into the “Additional Board Manager URLs” text box. Hit OK.</li>
+      <li>Then go to <strong>Tools &gt; Boards &gt; Boards Manager</strong>, search “esp8266”, and install it.</li>
+      <li>Go to <strong>Tools &gt; Boards</strong>, select “ESP8266 Thing”. If you don’t see it, close and reopen the IDE.</li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="a-simple-test">A simple test</h3>
+<p>Here is a simple Arduino example based on the circuit above. Copy and paste this into your Arduino IDE, then upload!:</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+</pre></td><td class="code"><pre><span class="cm">/******************************************************************************
+Flex_Sensor_Example.ino
+Example sketch for SparkFun's flex sensors
+  (https://www.sparkfun.com/products/10264)
+Jim Lindblom @ SparkFun Electronics
+April 28, 2016
+
+Create a voltage divider circuit combining a flex sensor with a 47k resistor.
+- The resistor should connect from A0 to GND.
+- The flex sensor should connect from A0 to 3.3V
+As the resistance of the flex sensor increases (meaning it's being bent), the
+voltage at A0 should decrease.
+
+Development environment specifics:
+Arduino 1.6.7
+******************************************************************************/</span>
+<span class="n">constint</span> <span class="n">FLEX_PIN</span> <span class="o">=</span> <span class="n">A0</span><span class="p">;</span> <span class="c1">// Pin connected to voltage divider output</span>
+
+<span class="c1">// Measure the voltage at 5V and the actual resistance of your</span>
+<span class="c1">// 47k resistor, and enter them below:</span>
+<span class="n">constfloat</span> <span class="n">VCC</span> <span class="o">=</span><span class="mi">4</span><span class="p">.</span><span class="mi">98</span><span class="p">;</span> <span class="c1">// Measured voltage of Ardunio 5V line</span>
+<span class="n">constfloat</span> <span class="n">R_DIV</span> <span class="o">=</span><span class="mi">47500</span><span class="p">.</span><span class="mi">0</span><span class="p">;</span> <span class="c1">// Measured resistance of 3.3k resistor</span>
+
+<span class="c1">// Upload the code, then try to adjust these values to more</span>
+<span class="c1">// accurately calculate bend degree.</span>
+<span class="n">constfloat</span> <span class="n">STRAIGHT_RESISTANCE</span> <span class="o">=</span><span class="mi">37300</span><span class="p">.</span><span class="mi">0</span><span class="p">;</span> <span class="c1">// resistance when straight</span>
+<span class="n">constfloat</span> <span class="n">BEND_RESISTANCE</span> <span class="o">=</span><span class="mi">90000</span><span class="p">.</span><span class="mi">0</span><span class="p">;</span> <span class="c1">// resistance at 90 deg</span>
+
+<span class="kt">void</span> <span class="nf">setup</span><span class="p">()</span> 
+<span class="p">{</span>
+<span class="n">Serial</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="mi">9600</span><span class="p">);</span>
+<span class="n">pinMode</span><span class="p">(</span><span class="n">FLEX_PIN</span><span class="p">,</span> <span class="n">INPUT</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">loop</span><span class="p">()</span> 
+<span class="p">{</span>
+<span class="c1">// Read the ADC, and calculate voltage and resistance from it</span>
+<span class="n">intflexADC</span><span class="o">=</span><span class="n">analogRead</span><span class="p">(</span><span class="n">FLEX_PIN</span><span class="p">);</span>
+<span class="n">floatflexV</span><span class="o">=</span><span class="n">flexADC</span><span class="o">*</span> <span class="n">VCC</span> <span class="o">/</span> <span class="mi">1023</span><span class="p">.</span><span class="mi">0</span><span class="p">;</span>
+<span class="n">floatflexR</span><span class="o">=</span> <span class="n">R_DIV</span> <span class="o">*</span> <span class="p">(</span><span class="n">VCC</span> <span class="o">/</span> <span class="n">flexV</span><span class="o">-</span><span class="mi">1</span><span class="p">.</span><span class="mi">0</span><span class="p">);</span>
+<span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">"Resistance: "</span><span class="o">+</span><span class="n">String</span><span class="p">(</span><span class="n">flexR</span><span class="p">)</span> <span class="o">+</span><span class="s">" ohms"</span><span class="p">);</span>
+
+<span class="c1">// Use the calculated resistance to estimate the sensor's</span>
+<span class="c1">// bend angle:</span>
+<span class="kt">float</span> <span class="n">angle</span> <span class="o">=</span> <span class="n">map</span><span class="p">(</span><span class="n">flexR</span><span class="p">,</span> <span class="n">STRAIGHT_RESISTANCE</span><span class="p">,</span> <span class="n">BEND_RESISTANCE</span><span class="p">,</span>
+<span class="mi">0</span><span class="p">,</span> <span class="mi">90</span><span class="p">.</span><span class="mi">0</span><span class="p">);</span>
+<span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">"Bend: "</span><span class="o">+</span><span class="n">String</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">+</span><span class="s">" degrees"</span><span class="p">);</span>
+<span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">();</span>
+
+  <span class="n">delay</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<h2 id="5-the-experiment">5. The experiment</h2>
+<p>After uploading, open your serial monitor, and set the baud rate to 9600 bps.
+If you bend the flex sensor, you should see resistance and estimated angle calculations change:
+Results
+<img src="/_images/tutorial_iot/flexsensor/hookup3.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+:ET

@@ -1,0 +1,8 @@
+---
+name: Yi Ren
+position: Assistant Professor
+link: semte.engineering.asu.edu/ren-yi/
+categories: asu-people
+image: yren32.png
+project: "Optimization, Machine Learning"
+---

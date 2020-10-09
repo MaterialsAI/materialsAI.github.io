@@ -1,0 +1,229 @@
+I"B*<h2 id="iot---sparkfun-sound-detector-hookup-guide---mae540-2017-team-3">IoT - SparkFun Sound Detector hookup guide - MAE540-2017 Team 3</h2>
+
+<p><strong>A Narrative of the Application</strong></p>
+
+<p>Sound detecting sensors have a number of security related applications such as:</p>
+
+<ol>
+  <li>Drone detection: Sound detecting sensors are used in detecting Drones as the drones emit some particular sound patterns which can be differentiated from the other common sounds such as vehicle horns, lawn mowers, etc. So the celebrities can now avoid the paparazzi cameras and we can get trespassing alerts for drones in restricted areas</li>
+  <li>Gunshot Alert: Gunfire sounds also have a unique signature. this sensor is helpful in detecting the gunshots fired in public areas such as schools, clubs, religious spots, etc. So we can immediately find out the location of the incident and take action accordingly.</li>
+  <li>Seismic detection: It also detects the vibrations from the ground or from the walls just  before an earthquake and can literally save lives.</li>
+  <li>Safe and vault: Many safes/vaults today, now comes equipped with an alarm which goes ON in case of any movement involving sound.</li>
+</ol>
+
+<p><strong>An Introduction to the Sensor:</strong></p>
+
+<p>The SparkFun Sound Detector is a compact board with a microphone which converts sound energy into electrical energy.  The detector provides three outputs in the form of an analogue output of pitch labelled audio output, binary output to indicate the presence of sound. and an analogue representation of the amplitude called envelope output. The Sound Detector comes with a moderate sensitivity but we can change it according to our specific requirement by adding a through hole resistor to alter the gain.</p>
+
+<h1 id="item-list">Item list</h1>
+
+<p>You will need the following:</p>
+
+<ol>
+  <li>The SparkFun ESP8266 Thing board</li>
+  <li>FTDI Basic -3.3V</li>
+  <li>SparkFun Cerberus USB Cable</li>
+  <li>Jumper Wires and a Breadboard</li>
+  <li>Arduino stackable header</li>
+  <li>A Android/Apple smartphone and a computer.</li>
+</ol>
+
+<p>Hardware Configuration of The Sound Detector.</p>
+
+<p>SPECIFICATIONS:</p>
+
+<p>Working Voltage: 3.5 - 5.5 V</p>
+
+<p>Outputs: Audio output, envelope output and binary output.</p>
+
+<p>Pins on Module - five: VCC / GND / Gate / Envelope / Audio</p>
+
+<p>On-Board LEDs - Red LED, on when sound is detected.</p>
+
+<p>Dimensions: 2.4cm X 4.4cm X 1 cm</p>
+
+<h1 id="hardware--setup"><strong>Hardware</strong>  Setup</h1>
+
+<p>Also read: <a href="http://designinformaticslab.github.io/productdesign_tutorial/2016/11/19/sparkfunthing_tutorial.html">Hookup Guideline for ESP8266 Thing and Blynk</a></p>
+
+<p>A Basic Functionality Test</p>
+
+<p>For a basic functionality test of the Sound Detector,  simply connect it this way.</p>
+
+<p>(Sound Detector ? ESP8266 Thing )</p>
+
+<p>GND ? GND.</p>
+
+<p>VCC ? 3V3.</p>
+
+<p>In a quiet room, power the board up, and then speak or preferably play some music close to the microphone. You should see the red LED on the Sound Detector board and the ESP8266 Thing blink in response to the sound.</p>
+
+<p>Sound Detector Functionality Test</p>
+
+<p>We can now test the board functionality: Using Blynk to switch turn on and off the sensor, to get the output readings of the presence of sound and the measurement of amplitude or pitch (depending on the hardware setup, as discussed in the instructions below) on Blynk. we will use the following hardware hookup to do so.</p>
+
+<p>Hardware Setup Instructions;</p>
+
+<ol>
+  <li>VCC on Sound Detector to 3V3 on ESP8266 Thing.</li>
+  <li>GND on Sound Detector to GND on ESP8266 Thing.</li>
+  <li>GATE on Sound Detector to PIN4 on ESP8266 Thing.
+4.</li>
+  <li>To measure Amplitude : GATE on Sound Detector to ADC A0 on ESP8266 Thing.</li>
+  <li>To measure Pitch : AUDIO on Sound Detector to ADC A0 on ESP8266 Thing.</li>
+</ol>
+
+<p><img src="/_images/tutorial_iot/sounddetector/image001.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>Arduino Sketch</p>
+
+<p>For this particular sensor, no special library is needed.</p>
+
+<p>In Arduino IDE, open a new sketch, compile and upload the following code:</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+</pre></td><td class="code"><pre> <span class="cp">#include &amp;lt;Wire.h&amp;gt;
+</span>
+ <span class="cp">#include &amp;lt;ESP8266WiFi.h&amp;gt;
+</span>
+ <span class="cp">#include &amp;lt;BlynkSimpleEsp8266.h&amp;gt;
+</span>
+ <span class="cp">#define PIN\_GATE\_IN 4
+</span>
+ <span class="c1">// You should get Auth Token in the Blynk App.</span>
+
+ <span class="c1">// Go to the Project Settings (nut icon).</span>
+
+ <span class="kt">char</span> <span class="n">auth</span><span class="p">[]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">quot</span><span class="p">;</span><span class="err">\</span><span class="o">*</span><span class="err">\</span><span class="o">*</span><span class="err">\</span><span class="o">*&amp;</span><span class="n">quot</span><span class="p">;;</span>         <span class="c1">// \*\*\*Type in your Blynk Token</span>
+
+ <span class="c1">// Your WiFi credentials.</span>
+
+ <span class="c1">// Set password to &amp;quot;&amp;quot; for open networks.</span>
+
+ <span class="kt">char</span> <span class="n">ssid</span><span class="p">[]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">quot</span><span class="p">;</span><span class="err">\</span><span class="o">*</span><span class="err">\</span><span class="o">*</span><span class="err">\</span><span class="o">*&amp;</span><span class="n">quot</span><span class="p">;;</span>        <span class="c1">//\*\*\* Enter your WiFi SSID here</span>
+
+ <span class="kt">char</span> <span class="n">pass</span><span class="p">[]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">quot</span><span class="p">;</span><span class="err">\</span><span class="o">*</span><span class="err">\</span><span class="o">*</span><span class="err">\</span><span class="o">*&amp;</span><span class="n">quot</span><span class="p">;;</span>        <span class="c1">// \*\*\*Enter your WiFi Password here</span>
+
+ <span class="kt">void</span> <span class="nf">setup</span><span class="p">()</span>
+
+ <span class="p">{</span>
+
+                    <span class="n">Blynk</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">ssid</span><span class="p">,</span> <span class="n">pass</span><span class="p">);</span>
+
+                    <span class="n">pinMode</span><span class="p">(</span><span class="n">PIN</span><span class="err">\</span><span class="n">_GATE</span><span class="err">\</span><span class="n">_IN</span><span class="p">,</span><span class="n">INPUT</span><span class="p">);</span>
+
+ <span class="p">}</span>
+
+ <span class="n">WidgetLED</span> <span class="nf">led1</span><span class="p">(</span><span class="n">V0</span><span class="p">);</span>
+
+ <span class="kt">void</span> <span class="nf">loop</span><span class="p">()</span>
+
+ <span class="p">{</span>
+
+                    <span class="n">Blynk</span><span class="p">.</span><span class="n">run</span><span class="p">();</span>
+
+                    <span class="kt">int</span> <span class="n">x</span><span class="o">=</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">PIN</span><span class="err">\</span><span class="n">_GATE</span><span class="err">\</span><span class="n">_IN</span><span class="p">);</span>
+
+                    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+
+                    <span class="n">led1</span><span class="p">.</span><span class="n">on</span><span class="p">();</span>
+
+                    <span class="k">else</span>
+
+                    <span class="n">led1</span><span class="p">.</span><span class="n">off</span><span class="p">();</span>
+
+ <span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Following is a brief explanation of this code:</p>
+
+<p>Line 1:     <strong>Wire.h</strong> is necessary to work with the sensor (anything connected to SDA/SCL pins)</p>
+
+<p>Line 2-3: These are header files for the ESP8266 Wifi shield and Blynk</p>
+
+<p>Line 4: Defines Pin 4 as PIN_GATE_IN</p>
+
+<p>Line 8: Helps identify the Blynk app using auth token code of the created project.</p>
+
+<p>Line 11-12: Provides necessary wifi-hotspot name and corresponding password for wifi module to connect to the device.</p>
+
+<p>Setup code: Passes the necessary information to Blynk to make connection and sets pin 4 as INPUT.</p>
+
+<p>Line 21: Defines Virtual LED on Blynk V0 as led1</p>
+
+<p>Loop code: Connects to Blynk and reading the Pin 4 decides to on or off the virtual LED</p>
+
+<p>On Blynk, from Widget Box, add a "Button". This is to turn the sensor on and off.</p>
+
+<p><img src="/_images/tutorial_iot/sounddetector/image002.jpg" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/sounddetector/image003.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>To get the GATE output on Blynk, from Widget Box, add an "LED". Name it as "Gate_Output" and select "Virtual V0" pin.</p>
+
+<p><img src="/_images/tutorial_iot/sounddetector/image004.jpg" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/sounddetector/image005.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>To plot graph of amplitude over time, from Widget Box in Blynk, select graph from menu, name it as "Amplitude", set input to ADC0 and reading frequency to 250ms.</p>
+
+<p><img src="/_images/tutorial_iot/sounddetector/image006.jpg" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/sounddetector/image007.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>The output we got is shown in the picture above on the right.</p>
+
+<p>To plot graph of pitch over time, change the hardware connection as described in the hardware setup above and from the Widget Box in Blynk, select graph from menu, name it as "Pitch", set input to ADC0 and reading frequency to 250ms as before.</p>
+
+<p><img src="/_images/tutorial_iot/sounddetector/image008.jpg" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/sounddetector/image009.jpg" alt="Drawing" style="height: 400px;" /></p>
+
+<p>The experiment was done to check the output from the Audio Gate and Envelope. Also Button, Virtual LED and Graph widgets on Blynk.</p>
+:ET

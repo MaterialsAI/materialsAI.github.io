@@ -1,0 +1,76 @@
+I"�<style type="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<h3 id="instructions">Instructions</h3>
+
+<ol>
+  <li>This homework is <strong>DUE on Mar 26</strong>.</li>
+  <li><strong>Please submit this homework in class</strong>.</li>
+</ol>
+
+<h3 id="problem-1-15-points">Problem 1 (15 Points)</h3>
+
+<p>Consider a shaft loaded in torsion and bending with \(M_a\) = 50Nm, \(T_a\) = 35Nm, \(M_m\) = 55Nm and
+\(T_m\) = 25Nm. We choose shaft material to have \(S_{ut}\) = 800MPa and \(S_y\) = 580MPa, and a 
+fully corrected endurance limit of \(S_e\) = 220MPa. \(K_f\) = 2.4 and \(K_fs\) = 2.0. 
+Determine the minimum acceptable diameter of the shaft based on modified-Goodman for a design factor of 1.5.
+<!--7-1--></p>
+
+<h3 id="problem-2-25-points">Problem 2 (25 Points)</h3>
+<p>The rotating solid steel shaft is simply supported by bearings at points B and C and is driven
+by a gear (not shown) which meshes with the spur gear at D, which has a 150-mm pitch diameter.
+The force F from the drive gear acts at a pressure angle of 20 degree. The shaft transmits a torque
+to point A of \(T_A\) = 340 Nm. The shaft is machined from steel with \(S_y\) = 420 MPa and
+\(S_{ut}\) = 560 MPa. Using a factor of safety of 2.5, determine the minimum allowable diameter of
+the 140-mm section of the shaft based on (a) a static yield analysis using the distortion energy
+theory and (b) a fatigue-failure analysis. Assume sharp fillet radii at the bearing shoulders for
+estimating stress-concentration factors.</p>
+
+<p><img src="/_images/mechdesign/hw4_2.png" alt="Drawing" style="height: 400px;" /></p>
+
+<h3 id="problem-3-25-points">Problem 3 (25 Points)</h3>
+<p>The shaft shown below has been proposed for the application defined in problem 3-73.
+Specify a square key for gear B (i.e., determine the width/height ( w = h ) and length l of the
+key), using a factor of safety of 1.1. It is known from problem 3-73 that a steady torque of
+3101Nm is transmitted through the key from the gear to the shaft. Use 1020 CD steel for
+the key. All fillets 2mm. Dimensions in mm.</p>
+
+<p><img src="/_images/mechdesign/hw4_3.png" alt="Drawing" style="height: 400px;" /></p>
+
+<h3 id="problem-4-25-points">Problem 4 (25 Points)</h3>
+<p>The shaft shown in the figure is driven by a gear at the right keyway, drives a fan at the left keyway,
+and is supported by two deep-groove ball bearings. The shaft is made from AISI 1020 cold-drawn steel. 
+At steady-state speed, the gear transmits a radial load of 230 lbf and a tangential load of
+633 lbf at a pitch diameter of 7 in.
+(a) Determine fatigue factors of safety at any potentially critical locations.
+(b) Check that deflections satisfy the suggested minimums for bearings and gears.</p>
+
+<p><img src="/_images/mechdesign/hw4_4.png" alt="Drawing" style="height: 400px;" /></p>
+
+<h3 id="problem-5-10-points">Problem 5 (10 Points)</h3>
+<p>Please read the wind turbine gearbox design problem <a href="/_teaching/mechdesign/gearbox.pdf">here</a>.
+The spreadsheet for solving this problem is <a href="https://docs.google.com/spreadsheets/d/1dfkUJD38Czb83s4KqrjdQ_XKyZaOYaEAMyOnBMsjDPY/edit?usp=sharing">here</a>.
+<strong>Please make a copy of it so you can edit.</strong>
+Try to find gear teeth numbers (on the summary page, highlighted in yellow) that are feasible (check gear feasibility in the “constraint” column)
+and produce the minimal gearbox volume.</p>
+
+<p>Report the numbers, and please describe your strategy in searching for these numbers.</p>
+:ET

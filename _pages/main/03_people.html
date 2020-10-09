@@ -1,0 +1,42 @@
+---
+title: People
+layout: page
+permalink: /people/
+published: true
+date: 2020-10-08
+category: header
+---
+
+<div class="topic">
+    <b>Faculty </b><br>
+    {% for people in site.posts %}
+    {% if people.categories contains 'asu-people' %}
+    <div class="member">
+        {% if people.image %}
+        <img src="{{ site.url }}/_images/people/{{ people.image}}">
+        {% else %}
+        <img src="{{ site.url }}/_images/people/missing_people.png">
+        {% endif %}
+        <br><b><a href="http://{{ people.link }}">{{ people.name }},</a></b><br> {{ people.position }},<br>
+        <b>Research Interests:</b> {{ people.project }}
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+<div class="topic">
+    <b>Collaborators</b><br>
+    {% for people in site.posts %}
+    {% if people.categories contains 'people' %}
+    <div class="member">
+        {% if people.image %}
+        <img src="{{ site.url }}/_images/people/{{ people.image}}">
+        {% else %}
+        <img src="{{ site.url }}/_images/people/missing_people.png">
+        {% endif %}
+        <br><b><a href="http://{{ people.link }}">{{ people.name }},</a></b><br> {{ people.position }},<br>
+        <b>Research Interests:</b> {{ people.project }}
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+

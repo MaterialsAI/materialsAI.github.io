@@ -1,0 +1,70 @@
+I"�<style type="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<p>This course will need you to be fluent in basic linear algebra and calculus. 
+Please check if you can answer the following questions:</p>
+
+<h3 id="linear-algebra">Linear algebra</h3>
+<ul>
+  <li>How do you do <strong>matrix multiplication</strong>?</li>
+  <li>How do you calculate the <strong>eigenvalues</strong> and <strong>eigenvectors</strong> of a square matrix?</li>
+  <li>What is the definition of a <strong>positive definite/positive semidefinite/negative definite/
+negative semidefinite/indefinite matrix</strong>?</li>
+  <li>What is the <strong>rank</strong> of a square matrix?</li>
+  <li>What is the property of a <strong>singular matrix</strong>?</li>
+  <li>What is a <strong>symmetric matrix</strong>?</li>
+  <li>Let \({\bf X}\) be a \(n\)-by-\(p\) matrix, what can you tell about \({\bf X}^T{\bf X}\)?</li>
+</ul>
+
+<h3 id="calculus">Calculus</h3>
+<ul>
+  <li>What is the definition of a <strong>gradient</strong>?</li>
+  <li>What is the <strong>geometric meaning</strong> of a gradient?</li>
+  <li>What is a <strong>contour</strong> line?</li>
+  <li>What is the relationship between a contour line and a gradient on that line?</li>
+  <li>Let a function be \(f(x_1,x_2,...,x_p) = a_1x_1+a_2x_2+...+a_px_p\). Write the matrix form of this function.</li>
+  <li>Let \(f({\bf x}) = {\bf A}{\bf x}\) where \({\bf A}\) is \(n\)-by-\(p\) and \({\bf x}\) is \(p\)-by-\(1\). 
+Calculate the gradient \(\frac{\partial f}{\partial {\bf x}}\).</li>
+  <li>Let \(f({\bf x}) = {\bf x}^T{\bf A}{\bf x}\) where \({\bf A}\) is \(p\)-by-\(p\) and \({\bf x}\) is \(p\)-by-\(1\). 
+Calculate the gradient \(\frac{\partial f}{\partial {\bf x}}\).</li>
+  <li>What is the definition of a <strong>Hessian matrix</strong>?</li>
+  <li>What is the property of a Hessian?</li>
+  <li>Perform 2nd order Taylor’s expansion on this function with respect to \(x=0\): \(f(x) = \exp(ax)\) where \(a\) is a scalar.</li>
+  <li>Perform 2nd order Taylor’s expansion on this function with respect to \({\bf x}={\bf 0}\): \(f({\bf x}) = \exp({\bf a}^T{\bf x})\) 
+where \({\bf a}\) and \({\bf x}\) are \(p\)-by-\(1\) vectors.</li>
+  <li>What is a convex set?</li>
+  <li>What is a convex function?</li>
+</ul>
+
+<h3 id="tutorials">Tutorials</h3>
+<p>If you have difficulty answering these questions, please check out the following tutorial:</p>
+
+<ul>
+  <li><a href="https://vimeo.com/149907223">Review 1: Vector and Matrix</a></li>
+  <li><a href="https://vimeo.com/149966720">Review 2: Eigenvalues, Eigenvectors, Matrix Calculus, and Convexity</a></li>
+</ul>
+
+<p><strong>Password</strong> is: ME555</p>
+
+<p>These tutorials are prepared by <a href="http://www.aebayrak.com/">Emrah Bayrak</a> and others at the Optimal Design Lab, the University of Michigan, 
+and only shared with this class. Please <strong>DO NOT</strong> share the videos outside of the class.</p>
+
+:ET

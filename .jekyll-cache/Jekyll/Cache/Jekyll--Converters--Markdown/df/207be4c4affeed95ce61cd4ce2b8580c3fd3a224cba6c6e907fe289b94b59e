@@ -1,0 +1,201 @@
+I"�7<style type="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<h1 id="a-tutorial-on-curve-fitting">A Tutorial on Curve Fitting</h1>
+
+<p>As you have seen through the class, curve fitting happens all the time through the 
+development of engineering knowledge, due to the fact that we often have the ability to observe things
+before we understand them. Thus curve fitting almost always indicate a sub-optimal solution due to 
+the lack of more rigorous methodology or time. But since engineering design is so complicated, 
+it becomes a regular part of engineers’ thinking.</p>
+
+<p>In this tutorial, I will first go through the very basic techniques of curve fitting, which you may have 
+already learned through Excel or Matlab. I will then talk about more broadly the issue of curve fitting.
+The purpose is for you to understand that when people talk about machine learning and AI, they are often
+talking about “curve fitting”.</p>
+
+<p>You may also want to check 
+<a href="http://designinformaticslab.github.io/_teaching/designopt/metamodeling.pdf">my slides on this topic</a> and
+the enormous amount of tutorials online. The fancy keywords are “regression”, “supervised learning”, 
+“meta-modeling”.</p>
+
+<h2 id="lets-define-curve-fitting">Let’s define “curve fitting”</h2>
+<p>Curve fitting, or formally <strong>supervised learning</strong>, deals with <strong>labeled</strong> data 
+\(\mathcal{D} = [{\bf x}_1,{\bf y}_1,{\bf x}_2,{\bf y}_2,\cdots]\) 
+where \({\bf x}\) is the input and \({\bf y}\) the output (or the label). For example, the inputs can be Trump’s tweets
+and the outputs the stock market performance right after that; or the inputs material microstructures 
+and the outputs their fracture strength; or the inputs camera images and 
+the outputs recognitions of objects within the images; or the inputs 
+graphical representations of chemical compounds and the outputs the survival rate of test specimens; 
+or …this can go on forever.</p>
+
+<p>In its simplest setting, supervised learning deals with scalar or 
+vectorial inputs and scalar outputs. The goal is to fit a curve (for 1D input) or a surface 
+(for 2D input) or a hypersurface (for nD input) to the data so that when a new input is given, 
+we can find an accurate prediction of the corresponding output from the curve or surface or 
+hypersurface. Often the question is: Do I use a straight line to fit or some kind of curve? How do I decide?
+An important concept to learn here is the <strong>Occam’s razor</strong>. To put this into context,
+<strong>the prediction accuracy of your curve goes up when the curve fit well with the data, 
+but also goes down if your curve is too wavy</strong>. In other words, you want to find a curve 
+(e.g., a polynomial function of a certain degree) that fits through most of the data points 
+(no under-fitting) but do not overfit.
+Common approaches to this include information criteria (check <em>AIC</em> and <em>BIC</em>) and <em>cross-validation</em>.</p>
+
+<h2 id="how-do-you-do-curve-fitting-in-matlab">How do you do curve fitting in Matlab?</h2>
+<p>Let’s now talk about how to actually do curve fitting without going deeper into the theory.
+<!--For sampled data, a n-th order polynomial can be used to describe data points for missing -->
+<!--indepedent axis data.  --></p>
+
+<h3 id="curve-fitting-with-scalar-input">Curve fitting with scalar input</h3>
+<p>In Matlab, this can be done using the <code class="language-plaintext highlighter-rouge">polyfit()</code> function when the input is scalar. 
+Required inputs are the sampled input and output data, and the degree of the desired polynomial. 
+The output is a \(n+1\) length vector describing the polynomial coefficients where \(n\) is 
+the degree of the polynomial.</p>
+
+<!--The degree of the polynomial is important to most accuurately describe the trend in data -->
+<!--(less error is not always beneficial).-->
+<!--Over-fitting can result in less-accurate data during extrapolation and interpolation although -->
+<!--the error between data points will appear to be less.-->
+
+<p>After finding the polynomial coefficients, its easiest to use the <code class="language-plaintext highlighter-rouge">polyval()</code> 
+function to evaluate the polynomial at the desired \({\bf x}\) values.  This can be more 
+explicitly represented as:
+<code class="language-plaintext highlighter-rouge">y = p(1).*x.^n + p(2).*x.^(n-1) + ... + p(n).*x + p(n+1)</code>.</p>
+
+<p>An example in use is below along with visualization of over-fitting and under-fitting:</p>
+
+<div class="language-matlab highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0426</span> <span class="mf">0.1210</span> <span class="mf">0.1555</span> <span class="mf">0.2661</span> <span class="mf">0.3629</span> <span class="mf">0.4551</span> <span class="mf">0.5703</span> <span class="mf">0.6924</span> <span class="mf">0.7846</span> <span class="mf">0.8583</span><span class="p">];</span>
+<span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1006</span> <span class="mf">0.2464</span> <span class="mf">0.3834</span> <span class="mf">0.5525</span> <span class="mf">0.7274</span> <span class="mf">0.7070</span> <span class="mf">0.5671</span> <span class="mf">0.5816</span> <span class="mf">0.5525</span> <span class="mf">0.5962</span><span class="p">];</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="nb">polyfit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="nb">degree</span><span class="p">);</span>
+
+<span class="n">x_fit</span> <span class="o">=</span> <span class="mi">0</span><span class="p">:</span><span class="mf">0.01</span><span class="p">:</span><span class="mi">1</span><span class="p">;</span>
+<span class="n">y_fit</span> <span class="o">=</span> <span class="nb">polyval</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="n">x_fit</span><span class="p">);</span>
+
+<span class="nb">figure</span><span class="p">;</span> <span class="nb">hold</span> <span class="n">on</span><span class="p">;</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="s1">'o'</span><span class="p">)</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">x_fit</span><span class="p">,</span><span class="n">y_fit</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h4 id="under-fit">Under-fit</h4>
+<p><img src="https://i.imgur.com/KEQk0It.png" alt="alt text" title="Degree = 2" /></p>
+
+<h4 id="good-fit">Good-fit</h4>
+<p><img src="https://i.imgur.com/O3xRMhT.png" alt="alt text" title="Degree = 3" /></p>
+
+<h4 id="over-fit">Over-fit</h4>
+<p><img src="https://i.imgur.com/YrViW5E.png" alt="alt text" title="Degree = 2" /></p>
+
+<h3 id="curve-fitting-with-vectorial-input">Curve fitting with vectorial input</h3>
+<p>Often times your inputs are vectors (e.g., images, structures, texts, audios, etc.). 
+<a href="https://www.mathworks.com/products/curvefitting.html">The Matlab curve fitting toolbox</a> 
+has a whole bunch of tools for fitting vectorial inputs to scalar (or vectorial) outputs. 
+If the toolbox is not free to you, I highly recommend <a href="http://scikit-learn.org/stable/">sk-learn</a>
+as a free and better alternative. Sk-learn is very well documented and has plenty of examples for 
+you to follow.</p>
+
+<p>Without going too much into the software details, I want to summarize a few important 
+categories of curve fitting models that are often used in engineering, with their pros and cons. 
+You will need to find their implementations either from Matlab, or sk-learn, or other places.</p>
+
+<ul>
+  <li>
+    <p>Linear models: These are the most widely used and are often very effective. Note that <em>linear</em> 
+here does not mean that the model can only fit straight lines. In fact, this category includes all 
+polynomial curves and beyond (as long as the model is linear in the parameter space). 
+<strong>Pros</strong>: Easy to use. Implementation can be found everywhere (start with Matlab).
+<strong>Cons</strong>: Don’t work well when the data is too wavy. You will need to define how the curve look like 
+(e.g., the degree of a polynomial function).</p>
+  </li>
+  <li>
+    <p>Kernel machines: A typical kernel machine is the <em>Support Vector Machine</em> (SVM). I will skip the 
+ technical details since SVM has been a standard and you can find tutorials on it easily. 
+ To summarize, SVM with nonlinear kernel is non-parametric, meaning that they can 
+ fit through all data points using the smoothest curve if needed and can 
+ automatically prevent overfitting through hyperparameter tuning. Yes, that’s a lot, but everything
+is automated in standard SVM packages, e.g., <code class="language-plaintext highlighter-rouge">libSVM</code> (also included in sk-learn) and Matlab’s <code class="language-plaintext highlighter-rouge">fitrsvm</code>. 
+<strong>Pros</strong>: Very flexible. Can handle complicated input-output relations and high-dimensional inputs.
+<strong>Cons</strong>: Curve fitting takes longer 
+(in general scales with the square of the number of data points) and takes more storage space. 
+Model not interpretable.</p>
+  </li>
+  <li>
+    <p>Gaussian process: Similar to SVM with nonlinear kernel, GPs are non-parametric and can 
+fit through all data points perfectly. Thus GP is commonly used to fit simulation data 
+(where no measurement noise is assumed). 
+<strong>Pros</strong>: Very flexible. Can handle complicated input-output relations. 
+The model naturally provides uncertainty of the prediction.
+<strong>Cons</strong>: Curve fitting takes longer (in general scales with the square of the number of data points)
+and takes more storage space. Accuracy of the model is sensitive to hyperparameter tuning.</p>
+  </li>
+  <li>
+    <p>Neural network: This is probably the most popular tool for curve fitting with all the successful 
+applications of <em>deep learning</em>. Unlike kernal machines and Gaussian process though, 
+we still don’t have much theory developed to guide the construction of neural networks, and 
+we only know they work when they actually work! 
+<strong>Pros</strong>: Somehow, they often work when you have a lot of data and know all the tricks 
+in training them. <strong>Cons</strong>: Even when you believe they work, you don’t know when they don’t.</p>
+  </li>
+</ul>
+
+<h2 id="from-curve-fitting-to-real-engineering-challenges">From curve fitting to real engineering challenges</h2>
+<p>There are several reasons why curve fitting is a good idea for solving engineering problems 
+(while not necessarily the best idea). I will summarize with the following:</p>
+
+<ul>
+  <li>
+    <p>Accelerate computation: We have shifted most of the engineering practices from experiments 
+to simulations to speed up the design and validation processes. However, engineering simulations 
+are still very slow, especially when dealing with complex systems and when fidelity matters. 
+For example, vehicle crash, material fatigue, and CFD simulations still takes hours on 
+high-performance computers. Curve fitting can potentially accelerate such simulations, i.e., we can 
+ build predictive models based on previous simulation data to circumvent future call of 
+ expensive simulations. See <a href="https://www.youtube.com/watch?v=iOWamCtnwTc">this video</a> on 
+ an accelerated Navier-Stokes solver for example. The same technique can be applied to accelerate 
+ a large range of engineering simulations.</p>
+  </li>
+  <li>
+    <p>Accelerated design: One benefit of accelerating simulations is that now we can evaluate 
+(and thus optimize) new engineering designs faster. See for example the following process 
+where we optimize a material microstructure towards higher or lower Young’s modulus based 
+on a “curve” that predicts the modulus based on the microstructure.</p>
+  </li>
+</ul>
+
+<p><img src="/_images/mechdesign/material.gif" alt="Drawing" style="height: 200px;" /></p>
+
+<h2 id="whats-difficult">What’s difficult?</h2>
+<p>I will end with a brief discussion on what is currently wrong with curve fitting, 
+and particularly their applications to engineering domains. Overall, as we move from 
+scenarios with simple data and simple models (e.g., linear models and kernel machines) to those with 
+high-dimensional data and complex models (e.g., neural networks), we loose the capability 
+to tell when things will go wrong. In fact, things are going wrong. For example, we now know that
+vision systems on autonomous cars can be 
+<a href="https://pdfs.semanticscholar.org/e373/d6275ec975c9c74e35348486d9b262b3ecbd.pdf">attacked</a> 
+to recognize stop signs as speed limit signs (search <em>adversial attack</em> to see most recent 
+developments in this direction). One can imaging that when we use complex “curves” to fit 
+engineering data, things can also go wrong, i.e., an engineering design optimized by a 
+machine based on a predictive model can be totally crap. The <strong>key issue</strong> 
+is that <strong>our current knowledge about curve fitting does not lead to knowledge transfer of a machine</strong>,
+i.e., a machine cannot do extrapolation or even interpolation well with the data presented. 
+See this <a href="https://www.youtube.com/watch?v=0tEhw5t6rhc">lecture</a> from Yann Lecun on 
+this broadly existing issue.</p>
+:ET

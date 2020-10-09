@@ -1,3 +1,14 @@
-remote_theme: "mmistakes/minimal-mistakes@4.20.2"
-plugins:
-  - jekyll-include-cache
+# Site Settings
+title: Materials + AI Planning Institute  |  ASU + Purdue
+email: yiren@asu.edu
+description: >
+  materials + ai planning group.
+baseurl: ""
+url: ""
+github_username:  materialsAI
+# Build Settings
+sass:
+  sass_dir: _sass
+include: ['_pages', '_papers', '_images', '_posts']
+exclude: ['_pages/publication_backup']
+encoding: UTF-8

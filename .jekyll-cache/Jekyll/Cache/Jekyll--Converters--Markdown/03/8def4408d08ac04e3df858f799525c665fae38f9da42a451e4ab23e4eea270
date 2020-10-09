@@ -1,0 +1,137 @@
+I"�G<style type="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<h1 id="topology-optimization-in-matlab">Topology Optimization in MATLAB</h1>
+<p>by Max Yi Ren</p>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>This is a brief introduction to the <a href="http://www.topopt.dtu.dk/?q=node/751">DTU 2D topology optimization code</a> 
+from Dr. Sigmund’s group and the <a href="https://top3dapp.com/">IUPUI 3D topology optimization code</a> by 
+Dr. K. Liu and Dr. A. Tovar. These are not necessarily the best tools to use for topology
+optimization, but if you already have MATLAB and want to quickly run some topology 
+optimization cases, these are a good start.</p>
+
+<p>At this moment, the tutorial will only focus on explaining the code, i.e., which parts of
+the code you should change to specify your boundary conditions and other parameters. I will 
+extend it to include a brief intro of the theories and methodologies behind 
+topology optimization later.</p>
+
+<p><strong>NOTE</strong>: Both codes we discuss here are for minimizing the structural compliance at equilibrium.</p>
+
+<h2 id="dtu-2d-topology-optimization-code">DTU 2D Topology Optimization Code</h2>
+<p>I will go through all the lines that you might want to tune for your own problem in the topology
+optimization code (<strong>top88.m</strong>).</p>
+
+<h3 id="what-directions-are-x-and-y-and-how-are-elementsnodes-numbered">What directions are x and y and how are elements/nodes numbered?</h3>
+<p>The following figure answers these questions.</p>
+
+<p><img src="/_images/tutorial_topopt/topopt881.png" alt="Drawing" style="height: 300px;" /></p>
+
+<h3 id="line-1-input-parameters">Line 1: Input parameters</h3>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="k">function</span> <span class="n">top88</span><span class="p">(</span><span class="n">nelx</span><span class="p">,</span><span class="n">nely</span><span class="p">,</span><span class="n">volfrac</span><span class="p">,</span><span class="n">penal</span><span class="p">,</span><span class="n">rmin</span><span class="p">,</span><span class="n">ft</span><span class="p">)</span></code></pre></figure>
+
+<p>The inputs are the number of elements in the x and y directions (<code class="language-plaintext highlighter-rouge">nelx</code> and <code class="language-plaintext highlighter-rouge">nely</code>, integers), 
+the volume fraction (<code class="language-plaintext highlighter-rouge">volfrac</code>, this is the number between 0 and 1 that specifies the
+ratio between the volume of the target topology and the maximum volume $nelx \times nely$), the penalty
+term for Young’s Modulus (<code class="language-plaintext highlighter-rouge">penal</code>, usually <strong>=3</strong>), the filter radius (<code class="language-plaintext highlighter-rouge">rmin</code>, usually <strong>=3</strong>), 
+and the method for filtering sensitivities (<code class="language-plaintext highlighter-rouge">ft</code>, either 1 or 2).</p>
+
+<h3 id="line-3-6-material-properties">Line 3-6: Material properties</h3>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">%% MATERIAL PROPERTIES</span>
+<span class="n">E0</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="n">Emin</span> <span class="o">=</span> <span class="mf">1e-9</span><span class="p">;</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">;</span></code></pre></figure>
+
+<p>Set the Young’s Modulus (<code class="language-plaintext highlighter-rouge">E0</code>), and the Poisson’s ratio (<code class="language-plaintext highlighter-rouge">nu</code>). Leave Emin as a small number.</p>
+
+<h3 id="line-19-loadings">Line 19: Loadings</h3>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="n">F</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span></code></pre></figure>
+
+<p>This line specifies the loading. Here <code class="language-plaintext highlighter-rouge">F</code> is a sparse column vector with <code class="language-plaintext highlighter-rouge">2(nely+1)(nelx+1)</code> elements.
+<code class="language-plaintext highlighter-rouge">(2,1,-1,\cdots)</code> specifies that there is a force of <strong>-1</strong> at the second row and first column
+of the vector. According to the numbering convention of this code, this is to say that in the y direction
+of the first node, there is a downward force of magnitude 1.</p>
+
+<h3 id="line-21-fixed-dofs">Line 21: Fixed DOFs</h3>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="n">fixeddofs</span> <span class="o">=</span> <span class="nb">union</span><span class="p">([</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)],[</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)]);</span></code></pre></figure>
+
+<p>This line specifies the nodes with fixed DOFs. <code class="language-plaintext highlighter-rouge">[1:2:2*(nely+1)]</code> are x directions 
+of all nodes to the left side of the structure, and <code class="language-plaintext highlighter-rouge">2*(nelx+1)*(nely+1)</code> is the y direction
+of the last node (right bottom corner). See figure below:</p>
+
+<p><img src="/_images/tutorial_topopt/topopt882.png" alt="Drawing" style="height: 300px;" /></p>
+
+<h2 id="iupui-3d-topology-optimization-code">IUPUI 3D topology optimization code</h2>
+<p>The <strong>top3d.m</strong> is similar to <strong>top88.m</strong> notationally. The numbering convention is as follows:</p>
+
+<p><img src="/_images/tutorial_topopt/topopt3d.png" alt="Drawing" style="height: 300px;" /></p>
+
+<h3 id="line-11-14-and-22-loadings">Line 11-14 and 22: Loadings</h3>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">% USER-DEFINED LOAD DOFs</span>
+<span class="p">[</span><span class="n">il</span><span class="p">,</span><span class="n">jl</span><span class="p">,</span><span class="n">kl</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="n">nelx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">nelz</span><span class="p">);</span>                 <span class="c1">% Coordinates</span>
+<span class="n">loadnid</span> <span class="o">=</span> <span class="n">kl</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">il</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="n">jl</span><span class="p">);</span> <span class="c1">% Node IDs</span>
+<span class="n">loaddof</span> <span class="o">=</span> <span class="mi">3</span><span class="o">*</span><span class="n">loadnid</span><span class="p">(:)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>                             <span class="c1">% DOFs</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="n">F</span> <span class="o">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">loaddof</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">ndof</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span></code></pre></figure>
+
+<p>Line 11-14 specifies the IDs of DOFs where loadings will be applied (<code class="language-plaintext highlighter-rouge">loaddof</code>). Line 22 then assigns
+magnitudes of the loadings to these DOFS (y direction).</p>
+
+<h3 id="line-15-18-fixed-dofs">Line 15-18: Fixed DOFs</h3>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">% USER-DEFINED SUPPORT FIXED DOFs</span>
+<span class="p">[</span><span class="n">iif</span><span class="p">,</span><span class="n">jf</span><span class="p">,</span><span class="n">kf</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="n">nely</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="n">nelz</span><span class="p">);</span>                  <span class="c1">% Coordinates</span>
+<span class="n">fixednid</span> <span class="o">=</span> <span class="n">kf</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">iif</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="n">jf</span><span class="p">);</span> <span class="c1">% Node IDs</span>
+<span class="n">fixeddof</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">fixednid</span><span class="p">(:);</span> <span class="mi">3</span><span class="o">*</span><span class="n">fixednid</span><span class="p">(:)</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="mi">3</span><span class="o">*</span><span class="n">fixednid</span><span class="p">(:)</span><span class="o">-</span><span class="mi">2</span><span class="p">];</span> <span class="c1">% DOFs</span></code></pre></figure>
+
+<p><code class="language-plaintext highlighter-rouge">fixeddof</code> specifies the fixed DOFs. In this particular case, the boundary conditions are as follows:</p>
+
+<p><img src="/_images/tutorial_topopt/topopt3d2.png" alt="Drawing" style="height: 300px;" /></p>
+
+<h3 id="practice">Practice</h3>
+<p>Use “top3d.m” to find the optimal topology for the following boundary conditions:</p>
+
+<p><img src="/_images/tutorial_topopt/topopt3d3.png" alt="Drawing" style="height: 300px;" /></p>
+
+<p><strong>Solution</strong>: Replace the boundary condition with the following code:</p>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">% USER-DEFINED LOAD DOFs</span>
+<span class="p">[</span><span class="n">il</span><span class="p">,</span><span class="n">jl</span><span class="p">,</span><span class="n">kl</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="n">nelx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">nelz</span><span class="p">);</span>                 <span class="c1">% Coordinates</span>
+<span class="n">loadnid</span> <span class="o">=</span> <span class="n">kl</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">il</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="n">jl</span><span class="p">);</span> <span class="c1">% Node IDs</span>
+<span class="n">loaddof</span> <span class="o">=</span> <span class="mi">3</span><span class="o">*</span><span class="n">loadnid</span><span class="p">(:)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>                             <span class="c1">% DOFs</span>
+<span class="c1">% USER-DEFINED SUPPORT FIXED DOFs</span>
+<span class="c1">% [iif,jf,kf] = meshgrid(0,0:nely,0:nelz);                  % Coordinates</span>
+<span class="p">[</span><span class="n">iif</span><span class="p">,</span><span class="n">jf</span><span class="p">,</span><span class="n">kf</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="n">nelz</span><span class="p">);</span>  
+<span class="n">fixednid</span> <span class="o">=</span> <span class="n">kf</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">iif</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="n">jf</span><span class="p">);</span> <span class="c1">% Node IDs</span>
+<span class="n">fixeddof</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">fixednid</span><span class="p">(:);</span> <span class="mi">3</span><span class="o">*</span><span class="n">fixednid</span><span class="p">(:)</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="mi">3</span><span class="o">*</span><span class="n">fixednid</span><span class="p">(:)</span><span class="o">-</span><span class="mi">2</span><span class="p">];</span> <span class="c1">% DOFs</span>
+
+<span class="c1">% symmetry</span>
+<span class="p">[</span><span class="n">iif</span><span class="p">,</span><span class="n">jf</span><span class="p">,</span><span class="n">kf</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="n">nely</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="n">nelz</span><span class="p">);</span>  
+<span class="n">fixednid</span> <span class="o">=</span> <span class="n">kf</span><span class="o">*</span><span class="p">(</span><span class="n">nelx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">iif</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="n">jf</span><span class="p">)</span><span class="o">+</span><span class="n">nelx</span><span class="o">*</span><span class="p">(</span><span class="n">nely</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span> <span class="c1">% Node IDs</span>
+<span class="n">fixeddof</span> <span class="o">=</span> <span class="p">[</span><span class="n">fixeddof</span><span class="p">;</span> <span class="mi">3</span><span class="o">*</span><span class="n">fixednid</span><span class="p">(:);</span> <span class="mi">3</span><span class="o">*</span><span class="n">fixednid</span><span class="p">(:)</span><span class="o">-</span><span class="mi">2</span><span class="p">];</span> <span class="c1">% DOFs</span></code></pre></figure>
+
+:ET

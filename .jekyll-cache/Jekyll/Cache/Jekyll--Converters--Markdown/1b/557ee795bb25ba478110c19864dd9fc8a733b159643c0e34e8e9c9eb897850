@@ -1,0 +1,233 @@
+I";�<style type="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<h2 id="overview">Overview</h2>
+<p>In this exercise you will put the regression techniques learned through the last few lectures
+to use. An engine fuel efficiency data can be downloaded <a href="/_teaching/designopt/enginedata.mat">here</a>.
+Use the data to create regression models and answer the following questions
+based on what you observed:</p>
+
+<ol>
+  <li>
+    <p>When applying OLS, how do you determine the features?</p>
+  </li>
+  <li>
+    <p>How does the number of features affect your training and test R-square values?</p>
+  </li>
+  <li>
+    <p>Is it always better to include more features?</p>
+  </li>
+  <li>
+    <p>How does the distribution of the training sample affect the test R-square?</p>
+  </li>
+  <li>
+    <p>Do you find Latin hypercube sampling to have better test R-square than random sampling?</p>
+  </li>
+  <li>
+    <p>What is the difference between feedforward neural network and Kriging?</p>
+  </li>
+</ol>
+
+<h2 id="sample-codes">Sample codes</h2>
+<p>A sample code can be downloaded <a href="/_teaching/designopt/metamodeling2.m">here</a>.
+In the following, we briefly go through the code.</p>
+
+<h3 id="data-visualization">Data visualization</h3>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="nb">close</span> <span class="nb">all</span><span class="p">;</span>
+<span class="nb">rng</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span> <span class="c1">% set random seed so that results are reproducible</span>
+
+<span class="c1">%Visualize the data</span>
+<span class="c1">% eng_consum_spd is the engine speed (rad/s)</span>
+<span class="c1">% eng_consum_trq is the engine torque (Nm)</span>
+<span class="p">[</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="n">eng_consum_spd</span><span class="s1">',eng_consum_trq'</span><span class="p">);</span>
+<span class="p">[</span><span class="n">M</span><span class="p">,</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="nb">contourf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">eng_fuel_map_gpkWh</span><span class="o">'</span><span class="p">,</span><span class="mi">30</span><span class="p">);</span> <span class="c1">% draw contour</span>
+<span class="nb">colormap</span> <span class="nb">parula</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s1">'Engine speed'</span><span class="p">);</span><span class="nb">ylabel</span><span class="p">(</span><span class="s1">'Engine torque'</span><span class="p">);</span><span class="nb">title</span><span class="p">(</span><span class="s1">'Engine fuel consumption (gram/kWh)'</span><span class="p">)</span>
+<span class="nb">figure</span><span class="p">;</span><span class="nb">colormap</span> <span class="nb">parula</span><span class="p">;</span><span class="nb">hold</span> <span class="n">on</span><span class="p">;</span>
+<span class="nb">surf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">eng_fuel_map_gpkWh</span><span class="o">'</span><span class="p">);</span><span class="nb">alpha</span> <span class="mf">0.5</span> <span class="c1">% draw surface</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s1">'Engine speed'</span><span class="p">);</span><span class="nb">ylabel</span><span class="p">(</span><span class="s1">'Engine torque'</span><span class="p">);</span><span class="nb">title</span><span class="p">(</span><span class="s1">'Engine fuel consumption (gram/kWh)'</span><span class="p">)</span></code></pre></figure>
+
+<p>After loading the data (double click on the .mat file you just downloaded within Matlab),
+the above code visualizes the engine efficiency map. Note that the unit of the map is
+gram/kWh, therefore lower values are of higher efficiency.</p>
+
+<h3 id="data-preparation">Data preparation</h3>
+<p>The following script prepares the training and test data. The idea is to use
+the training data to build the regression model, and test this model using the test data.
+Note that here we assume we see the test data just so that we can
+understand what happens when the model is deployed. In reality, the test
+data is never seen and cannot be used to influence the regression model.</p>
+
+<p>Here, we use two methods to create the training data. One is to use random sampling
+(commented out in the following code) and the other is to use Latin Hypercube sampling.
+Please test to see which one is better in terms of test R-square.</p>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">%Prepare training and test data</span>
+<span class="n">xo</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="mi">12</span><span class="o">*</span><span class="mi">17</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span> <span class="c1">% 2D input (engine speed, engine torque)</span>
+<span class="n">yo</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="mi">12</span><span class="o">*</span><span class="mi">17</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span> <span class="c1">% 1D output (engine fuel efficiency, gram per kWh)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="mi">12</span> <span class="c1">% discrete engine speed</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="mi">17</span> <span class="c1">% discrete engine torque</span>
+        <span class="n">xo</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">12</span><span class="p">,:)</span> <span class="o">=</span> <span class="p">[</span><span class="n">eng_consum_spd</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="n">eng_consum_trq</span><span class="p">(</span><span class="n">j</span><span class="p">)];</span>
+        <span class="n">yo</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">12</span><span class="p">,:)</span> <span class="o">=</span> <span class="n">eng_fuel_map_gpkWh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">);</span>
+    <span class="k">end</span>
+<span class="k">end</span>
+<span class="nb">set</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="mi">12</span><span class="o">*</span><span class="mi">17</span><span class="p">;</span>
+
+<span class="n">trainn</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span> <span class="c1">% set training data size to be trainn*17</span>
+<span class="n">xtrain</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">trainn</span><span class="o">*</span><span class="mi">17</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+<span class="n">ytrain</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">trainn</span><span class="o">*</span><span class="mi">17</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="c1">% use Latin Hypercube sampling</span>
+<span class="n">lhsample</span> <span class="o">=</span> <span class="n">lhsdesign</span><span class="p">(</span><span class="n">trainn</span><span class="o">*</span><span class="mi">17</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="s1">'iterations'</span><span class="p">,</span><span class="mi">100</span><span class="p">);</span>
+<span class="n">lhsample</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">times</span><span class="p">,</span> <span class="n">lhsample</span><span class="p">,</span><span class="k">...</span>
+    <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="n">eng_consum_spd</span><span class="p">)</span><span class="o">-</span><span class="nb">min</span><span class="p">(</span><span class="n">eng_consum_spd</span><span class="p">),</span><span class="nb">max</span><span class="p">(</span><span class="n">eng_consum_trq</span><span class="p">)</span><span class="o">-</span><span class="nb">min</span><span class="p">(</span><span class="n">eng_consum_trq</span><span class="p">)]);</span>
+<span class="n">lhsample</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">plus</span><span class="p">,</span> <span class="n">lhsample</span><span class="p">,</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">eng_consum_spd</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">eng_consum_trq</span><span class="p">)]);</span>
+<span class="n">xcandidate</span> <span class="o">=</span> <span class="n">xo</span><span class="p">;</span>
+<span class="c1">% match Latin hypercube samples to the predefined grid</span>
+<span class="k">for</span> <span class="nb">count</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">trainn</span><span class="o">*</span><span class="mi">17</span>
+    <span class="p">[</span><span class="o">~</span><span class="p">,</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">minus</span><span class="p">,</span> <span class="n">xcandidate</span><span class="p">,</span> <span class="n">lhsample</span><span class="p">(</span><span class="nb">count</span><span class="p">,:))</span><span class="o">.^</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">));</span>
+    <span class="n">xtrain</span><span class="p">(</span><span class="nb">count</span><span class="p">,:)</span> <span class="o">=</span> <span class="n">xcandidate</span><span class="p">(</span><span class="n">id</span><span class="p">,:);</span>
+    <span class="n">ytrain</span><span class="p">(</span><span class="nb">count</span><span class="p">)</span> <span class="o">=</span> <span class="n">yo</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">id</span><span class="p">),:);</span>
+    <span class="n">xcandidate</span><span class="p">(</span><span class="n">id</span><span class="p">,:)</span><span class="o">=</span><span class="p">[];</span>
+    <span class="nb">set</span><span class="p">(</span><span class="n">id</span><span class="p">)</span> <span class="o">=</span> <span class="p">[];</span>
+<span class="k">end</span>
+
+<span class="c1">% use random samples</span>
+<span class="c1">% for count = 1:trainn*17</span>
+<span class="c1">%     id = floor(rand*length(set))+1;</span>
+<span class="c1">%     xtrain(count,:) = xo(set(id),:);</span>
+<span class="c1">%     ytrain(count) = yo(set(id),:);</span>
+<span class="c1">%     set(id) = [];</span>
+<span class="c1">% end</span>
+
+<span class="c1">% use all remaining data points for test</span>
+<span class="n">xtest</span> <span class="o">=</span> <span class="n">xo</span><span class="p">(</span><span class="nb">set</span><span class="p">,:);</span><span class="n">x</span>
+<span class="n">ytest</span> <span class="o">=</span> <span class="n">yo</span><span class="p">(</span><span class="nb">set</span><span class="p">);</span>
+<span class="c1">% plot training vs. test data points</span>
+<span class="nb">plot3</span><span class="p">(</span><span class="n">xtrain</span><span class="p">(:,</span><span class="mi">1</span><span class="p">),</span><span class="n">xtrain</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span><span class="n">ytrain</span><span class="p">,</span><span class="s1">'.k'</span><span class="p">,</span><span class="s1">'MarkerSize'</span><span class="p">,</span><span class="mi">30</span><span class="p">);</span>
+<span class="nb">plot3</span><span class="p">(</span><span class="n">xtest</span><span class="p">(:,</span><span class="mi">1</span><span class="p">),</span><span class="n">xtest</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span><span class="n">ytest</span><span class="p">,</span><span class="s1">'.y'</span><span class="p">,</span><span class="s1">'MarkerSize'</span><span class="p">,</span><span class="mi">30</span><span class="p">);</span></code></pre></figure>
+
+<h3 id="ordinary-least-square">Ordinary Least Square</h3>
+<p>The following script performs OLS estimation, reports the test R-square,
+and outputs a visual comparison between the true efficiency map and the predicted one.
+Try to change the features, defined as <code class="language-plaintext highlighter-rouge">X</code>, and see if doing so improves
+the test R-square.</p>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="c1">% use OLS for regression</span>
+<span class="c1">% try different complexities of polynomials</span>
+<span class="n">X</span> <span class="o">=</span> <span class="p">[</span><span class="n">xtrain</span><span class="p">,</span><span class="n">xtrain</span><span class="o">.^</span><span class="mi">2</span><span class="p">,</span><span class="n">xtrain</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.*</span><span class="n">xtrain</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span><span class="n">xtrain</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.^</span><span class="mf">2.</span><span class="o">*</span><span class="n">xtrain</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span><span class="n">xtrain</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.*</span><span class="n">xtrain</span><span class="p">(:,</span><span class="mi">2</span><span class="p">)</span><span class="o">.^</span><span class="mi">2</span><span class="p">];</span>
+<span class="c1">% normalize data to avoid ill-conditioning due to different scales of</span>
+<span class="c1">% inputs. This is not super necessary since MATLAB solver takes care of</span>
+<span class="c1">% pre-conditioning.</span>
+<span class="n">Xmean</span> <span class="o">=</span> <span class="nb">mean</span><span class="p">(</span><span class="n">X</span><span class="p">);</span>
+<span class="n">Xstd</span> <span class="o">=</span> <span class="nb">std</span><span class="p">(</span><span class="n">X</span><span class="p">);</span>
+<span class="n">X</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">minus</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="n">Xmean</span><span class="p">);</span> <span class="c1">% normalization step 1: set mean to zero</span>
+<span class="n">X</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">rdivide</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="n">Xstd</span><span class="p">);</span> <span class="c1">% normalization step 2: set std to 1</span>
+<span class="n">X</span> <span class="o">=</span> <span class="p">[</span><span class="nb">ones</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">ytrain</span><span class="p">),</span><span class="mi">1</span><span class="p">),</span><span class="n">X</span><span class="p">];</span> <span class="c1">% allow bias</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">ytrain</span><span class="p">;</span>
+<span class="p">[</span><span class="n">n</span><span class="p">,</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="nb">size</span><span class="p">(</span><span class="n">xtrain</span><span class="p">);</span>
+<span class="nb">beta</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span><span class="s1">'*X)\(X'</span><span class="o">*</span><span class="n">y</span><span class="p">);</span> <span class="c1">% OLS estimation</span>
+
+<span class="c1">% Compute test R2</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="p">[</span><span class="n">xtest</span><span class="p">,</span><span class="n">xtest</span><span class="o">.^</span><span class="mi">2</span><span class="p">,</span><span class="n">xtest</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.*</span><span class="n">xtest</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span><span class="n">xtest</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.^</span><span class="mf">2.</span><span class="o">*</span><span class="n">xtest</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span><span class="n">xtest</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.*</span><span class="n">xtest</span><span class="p">(:,</span><span class="mi">2</span><span class="p">)</span><span class="o">.^</span><span class="mi">2</span><span class="p">];</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">minus</span><span class="p">,</span><span class="n">Xtest</span><span class="p">,</span><span class="n">Xmean</span><span class="p">);</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">rdivide</span><span class="p">,</span><span class="n">Xtest</span><span class="p">,</span><span class="n">Xstd</span><span class="p">);</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="p">[</span><span class="nb">ones</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">ytest</span><span class="p">),</span><span class="mi">1</span><span class="p">),</span><span class="n">Xtest</span><span class="p">];</span>
+<span class="n">e</span> <span class="o">=</span> <span class="n">Xtest</span><span class="o">*</span><span class="nb">beta</span><span class="o">-</span><span class="n">ytest</span><span class="p">;</span>
+<span class="n">R2_OLS</span> <span class="o">=</span> <span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">e</span><span class="s1">'*e)/((ytest-mean(ytest))'</span><span class="o">*</span><span class="p">(</span><span class="n">ytest</span><span class="o">-</span><span class="nb">mean</span><span class="p">(</span><span class="n">ytest</span><span class="p">)));</span>
+
+<span class="c1">% Visualize the predicted fuel efficiency</span>
+<span class="n">xplot</span> <span class="o">=</span> <span class="p">[</span><span class="n">xo</span><span class="p">,</span> <span class="n">xo</span><span class="o">.^</span><span class="mi">2</span><span class="p">,</span> <span class="n">xo</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.*</span><span class="n">xo</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span> <span class="n">xo</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.^</span><span class="mf">2.</span><span class="o">*</span><span class="n">xo</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span> <span class="n">xo</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">.*</span><span class="n">xo</span><span class="p">(:,</span><span class="mi">2</span><span class="p">)</span><span class="o">.^</span><span class="mi">2</span><span class="p">];</span>
+<span class="n">xplot</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">minus</span><span class="p">,</span><span class="n">xplot</span><span class="p">,</span><span class="n">Xmean</span><span class="p">);</span>
+<span class="n">xplot</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">rdivide</span><span class="p">,</span><span class="n">xplot</span><span class="p">,</span><span class="n">Xstd</span><span class="p">);</span>
+<span class="n">xplot</span> <span class="o">=</span> <span class="p">[</span><span class="nb">ones</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">yo</span><span class="p">),</span><span class="mi">1</span><span class="p">),</span><span class="n">xplot</span><span class="p">];</span>
+<span class="n">yplot</span> <span class="o">=</span> <span class="n">xplot</span><span class="o">*</span><span class="nb">beta</span><span class="p">;</span>
+<span class="p">[</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="n">eng_consum_spd</span><span class="s1">',eng_consum_trq'</span><span class="p">);</span>
+<span class="nb">surf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="nb">reshape</span><span class="p">(</span><span class="n">yplot</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">17</span><span class="p">)</span><span class="o">'</span><span class="p">);</span></code></pre></figure>
+
+<h3 id="gaussian-process">Gaussian process</h3>
+
+<p>Gaussian process allows you to fit through all training data points exactly,
+while using the least “complex” function. This however, as you will see, may lead
+to large prediction error, and thus requires fine-tuning of the Gaussian spread (<code class="language-plaintext highlighter-rouge">lambda</code> in the following code).
+Also a more even spread of samples through Latin Hypercube will help.</p>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="n">lambda</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">;</span> <span class="c1">%Gaussian spread</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">xtrain</span><span class="p">;</span>
+<span class="n">Xmean</span> <span class="o">=</span> <span class="nb">mean</span><span class="p">(</span><span class="n">X</span><span class="p">);</span>
+<span class="n">Xstd</span> <span class="o">=</span> <span class="nb">std</span><span class="p">(</span><span class="n">X</span><span class="p">);</span>
+<span class="n">X</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">minus</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="n">Xmean</span><span class="p">);</span>
+<span class="n">X</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">rdivide</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="n">Xstd</span><span class="p">);</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">ytrain</span><span class="p">;</span>
+<span class="p">[</span><span class="n">n</span><span class="p">,</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="nb">size</span><span class="p">(</span><span class="n">xtrain</span><span class="p">);</span>
+<span class="n">R</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">);</span>
+<span class="k">for</span> <span class="n">pp</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">n</span>
+    <span class="k">for</span> <span class="n">qq</span> <span class="o">=</span> <span class="p">(</span><span class="n">pp</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span><span class="n">n</span>
+        <span class="n">R</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span><span class="n">qq</span><span class="p">)</span> <span class="o">=</span> <span class="nb">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">/</span><span class="n">lambda</span><span class="o">*</span><span class="nb">norm</span><span class="p">(</span><span class="n">X</span><span class="p">(</span><span class="n">pp</span><span class="p">,:)</span><span class="o">-</span><span class="n">X</span><span class="p">(</span><span class="n">qq</span><span class="p">,:))</span><span class="o">^</span><span class="mi">2</span><span class="p">);</span>
+    <span class="k">end</span>
+<span class="k">end</span>
+<span class="n">R</span> <span class="o">=</span> <span class="n">R</span> <span class="o">+</span> <span class="n">R</span><span class="o">'</span><span class="p">;</span>
+<span class="n">R</span> <span class="o">=</span> <span class="n">R</span> <span class="o">+</span> <span class="nb">eye</span><span class="p">(</span><span class="n">n</span><span class="p">);</span>
+
+<span class="c1">% Compute test R2</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="n">xtest</span><span class="p">;</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">minus</span><span class="p">,</span><span class="n">Xtest</span><span class="p">,</span><span class="n">Xmean</span><span class="p">);</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">rdivide</span><span class="p">,</span><span class="n">Xtest</span><span class="p">,</span><span class="n">Xstd</span><span class="p">);</span>
+<span class="n">r</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="nb">length</span><span class="p">(</span><span class="n">ytest</span><span class="p">));</span>
+<span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="nb">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">R</span><span class="p">\</span><span class="n">y</span><span class="p">))/(</span><span class="nb">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">R</span><span class="p">\</span><span class="nb">ones</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)));</span>
+<span class="n">yhat</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">ytest</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span>
+<span class="k">for</span> <span class="n">qq</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">ytest</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">pp</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">n</span>
+        <span class="n">r</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span><span class="n">qq</span><span class="p">)</span> <span class="o">=</span> <span class="nb">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">/</span><span class="n">lambda</span><span class="o">*</span><span class="nb">norm</span><span class="p">(</span><span class="n">X</span><span class="p">(</span><span class="n">pp</span><span class="p">,:)</span><span class="o">-</span><span class="n">Xtest</span><span class="p">(</span><span class="n">qq</span><span class="p">,:))</span><span class="o">^</span><span class="mi">2</span><span class="p">);</span>
+    <span class="k">end</span>
+    <span class="n">yhat</span><span class="p">(</span><span class="n">qq</span><span class="p">)</span> <span class="o">=</span> <span class="n">b</span> <span class="o">+</span> <span class="n">r</span><span class="p">(:,</span><span class="n">qq</span><span class="p">)</span><span class="o">'*</span><span class="p">(</span><span class="n">R</span><span class="p">\(</span><span class="n">ytrain</span><span class="o">-</span><span class="n">b</span><span class="o">*</span><span class="nb">ones</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)));</span>
+<span class="k">end</span>
+<span class="n">e</span> <span class="o">=</span> <span class="n">yhat</span><span class="o">-</span><span class="n">ytest</span><span class="p">;</span>
+<span class="n">R2_kriging</span> <span class="o">=</span> <span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">e</span><span class="s1">'*e)/((ytest-mean(ytest))'</span><span class="o">*</span><span class="p">(</span><span class="n">ytest</span><span class="o">-</span><span class="nb">mean</span><span class="p">(</span><span class="n">ytest</span><span class="p">)));</span>
+
+<span class="c1">% Visualize predicted fuel efficiency</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="n">xo</span><span class="p">;</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">minus</span><span class="p">,</span><span class="n">Xtest</span><span class="p">,</span><span class="n">Xmean</span><span class="p">);</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="nb">bsxfun</span><span class="p">(</span><span class="o">@</span><span class="nb">rdivide</span><span class="p">,</span><span class="n">Xtest</span><span class="p">,</span><span class="n">Xstd</span><span class="p">);</span>
+<span class="n">r</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="nb">length</span><span class="p">(</span><span class="n">yo</span><span class="p">));</span>
+<span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="nb">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">R</span><span class="p">\</span><span class="n">y</span><span class="p">))/(</span><span class="nb">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">R</span><span class="p">\</span><span class="nb">ones</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)));</span>
+<span class="n">yhat</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">yo</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span>
+<span class="k">for</span> <span class="n">qq</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">yo</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">pp</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">n</span>
+        <span class="n">r</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span><span class="n">qq</span><span class="p">)</span> <span class="o">=</span> <span class="nb">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">/</span><span class="n">lambda</span><span class="o">*</span><span class="nb">norm</span><span class="p">(</span><span class="n">X</span><span class="p">(</span><span class="n">pp</span><span class="p">,:)</span><span class="o">-</span><span class="n">Xtest</span><span class="p">(</span><span class="n">qq</span><span class="p">,:))</span><span class="o">^</span><span class="mi">2</span><span class="p">);</span>
+    <span class="k">end</span>
+    <span class="n">yhat</span><span class="p">(</span><span class="n">qq</span><span class="p">)</span> <span class="o">=</span> <span class="n">b</span> <span class="o">+</span> <span class="n">r</span><span class="p">(:,</span><span class="n">qq</span><span class="p">)</span><span class="o">'*</span><span class="p">(</span><span class="n">R</span><span class="p">\(</span><span class="n">ytrain</span><span class="o">-</span><span class="n">b</span><span class="o">*</span><span class="nb">ones</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)));</span>
+<span class="k">end</span>
+<span class="p">[</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="n">eng_consum_spd</span><span class="s1">',eng_consum_trq'</span><span class="p">);</span>
+<span class="nb">surf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="nb">reshape</span><span class="p">(</span><span class="n">yhat</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">17</span><span class="p">)</span><span class="o">'</span><span class="p">);</span></code></pre></figure>
+
+<h3 id="feedforward-neural-net">Feedforward Neural Net</h3>
+<p>While there is a script way to use the feedforward network, Matlab does provide
+a network fitting app that is easy to use (with limited functionality).
+The following code visualizes the outputs from the network <code class="language-plaintext highlighter-rouge">net</code>.</p>
+
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><span class="n">yhat</span> <span class="o">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">yo</span><span class="p">),</span><span class="mi">1</span><span class="p">);</span>
+<span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">yo</span><span class="p">)</span>
+    <span class="n">yhat</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">net1</span><span class="p">(</span><span class="n">xo</span><span class="p">(</span><span class="n">i</span><span class="p">,:)</span><span class="o">'</span><span class="p">);</span>
+<span class="k">end</span>
+<span class="p">[</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">]</span> <span class="o">=</span> <span class="nb">meshgrid</span><span class="p">(</span><span class="n">eng_consum_spd</span><span class="s1">',eng_consum_trq'</span><span class="p">);</span>
+<span class="nb">surf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="nb">reshape</span><span class="p">(</span><span class="n">yhat</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">17</span><span class="p">)</span><span class="o">'</span><span class="p">);</span></code></pre></figure>
+:ET

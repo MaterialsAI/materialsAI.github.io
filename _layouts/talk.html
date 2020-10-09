@@ -1,0 +1,18 @@
+---
+layout: default
+---
+
+<div id="talk">
+    <h3>{{ page.title }}</h3>
+    {% if page.speaker_name %}
+        Speaker: {{ page.speaker_name}}, {{ page.speaker_school }}<br><br>
+    {% endif %}
+
+    <b> Abstract </b><br>
+    <a>{{ page.abstract }}</a>
+    <br><br>
+
+    <b>Bio</b><br>
+    <a>{{ page.speaker_bio }}</a>
+</div>
+

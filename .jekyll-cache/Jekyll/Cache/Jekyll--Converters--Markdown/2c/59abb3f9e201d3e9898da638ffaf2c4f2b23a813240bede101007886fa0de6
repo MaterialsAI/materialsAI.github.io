@@ -1,0 +1,244 @@
+I"�5<h1 id="hookup-guide-for-esp8266-thing-and-blynk">Hookup Guide for ESP8266 Thing and Blynk</h1>
+<p>by Max Yi Ren</p>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>This is a tutorial for people (like me) who have no IoT experience <strong>at all</strong>. We will skip a lot 
+of the technical details and focus on moving you from “<strong>Really I can do this?</strong>” to “<strong>Oh that’s neat!</strong>”. 
+This tutorial mostly follow the official <a href="https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/introduction">ESP8266 Thing Hookup Guide</a>, but tries to explain 
+a few (dummy) things. The <a href="http://docs.blynk.cc/">Blynk tutorial</a> is also useful.</p>
+
+<h2 id="item-list">Item list</h2>
+
+<p>To start, you will need the following items prepared. Note that there are enormous 
+hardware/software combinations to get the same thing to work. I will only go through the easiest way.</p>
+
+<ol>
+  <li><strong>The SparkFun ESP8266 Thing board</strong>: “The Thing” combines Arduino Uno and ESP8266 Wifi shield so that 
+you don’t have to purchase separate parts and wire them. However, the shortcoming is that it provides
+limited pins.</li>
+  <li><strong>FTDI Basic -3.3V</strong>: FTDI will be connected to the Thing to physically upload your program to it. Both
+boards run at 3.3V.</li>
+  <li><strong>SparkFun Cerberus USB Cable</strong>: The cable charges the Thing and allows communication between your 
+computer and the FTDI.</li>
+  <li><strong>Jumper Wires and a Breadboard</strong>: You will need them to connect FTDI and other chips/sensors of your 
+interest to the Thing.</li>
+  <li><strong>Arduino stackable header</strong>: I use two of these to connect the Thing to the breadboard.</li>
+  <li><strong>Solder</strong>: You will need to wire chips/sensors before you can use them. So prepare to solder.</li>
+  <li>A Android/Apple <strong>smart phone</strong> and a <strong>computer</strong>.</li>
+</ol>
+
+<h2 id="hardware-setup">Hardware setup</h2>
+<p>To test the basic functionality, we will use the following hookup.</p>
+
+<p><img src="/_images/tutorial_iot/hookup1.JPG" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/hookup2.JPG" alt="Drawing" style="height: 400px;" /></p>
+
+<h2 id="software-setup">Software setup</h2>
+<p>The following setup should work for both Windows and Linux.</p>
+
+<ol>
+  <li>Download the <a href="https://www.arduino.cc/en/Main/Software">Arduino IDE</a> and install. It’s free.</li>
+  <li>Open the Arduino IDE. Install ESP8266 Arduino Addon:
+    <ul>
+      <li>Go to <strong>File &gt; Preference</strong>, type
+<code class="language-plaintext highlighter-rouge">http://arduino.esp8266.com/stable/package_esp8266com_index.json</code>
+into the “Additional Board Manager URLs” text box. Hit OK.</li>
+      <li>Then go to <strong>Tools &gt; Boards &gt; Boards Manager</strong>, search “esp8266”, and install it.</li>
+      <li>Go to <strong>Tools &gt; Boards</strong>, select “ESP8266 Thing”. If you don’t see it, close and reopen the IDE.</li>
+    </ul>
+  </li>
+  <li>On your smart phone, install “Blynk” and register. It’s free.</li>
+  <li>Download the <a href="https://github.com/blynkkk/blynk-library">Blynk library</a>. Unzip it and move it to <strong>%myDocuments%/Arduino/libraries</strong>
+(%myDocument% should be %your_user_name/documents% on Windows).</li>
+</ol>
+
+<h2 id="validation">Validation</h2>
+<p>Before you move forward, I strongly recommend you to go through the cases 
+from <a href="https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/introduction">the official guideline</a> to see
+if your setup is all correct.</p>
+
+<p><strong>Hint</strong>: If you encounter the error: “warning: espcomm_sync failed…”, there could be three reasons:</p>
+
+<ol>
+  <li>Check if the Thing is turned on! The switch is on one corner of the board. You should 
+see a red light on once the board is turned on.</li>
+  <li>
+    <p>In the IDE, check <strong>Tools&gt;Port</strong> to see which serial port you are using. 
+Remember that both the Thing and the FTDI
+are hooked up through USB, the one we should use is the USB Serial Port rather than Communications Port.
+To find the right port, go to Device Manager (on Windows, it’s under <strong>Control Panel&gt;System and 
+Security&gt;System</strong>) and check “<strong>Ports</strong>”. See figure below.
+<img src="/_images/tutorial_iot/port.png" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/port2.png" alt="Drawing" style="height: 400px;" />
+<!--![Alt text](/_images/tutorial_iot/port.png)-->
+<!--![Alt text](/_images/tutorial_iot/port2.png)--></p>
+  </li>
+  <li>It could be that your soldering is not well done.</li>
+</ol>
+
+<p>In addition, sometimes this problem disappears when you re-upload, if your Port is chosen correctly.</p>
+
+<h2 id="case-study---pressure-and-temperature-sensor">Case study - Pressure and temperature sensor</h2>
+<p>Now assume that you had fun with those cases, below we go through the simple setup to read from a 
+pressure sensor (data from board to phone) and to control the on-board LED (data from phone to board).</p>
+
+<h3 id="hardware-configuration">Hardware configuration</h3>
+<p>The pressure sensor (MPL3115A2) has four pins: “GND” (ground),
+“3V3” (3.3V power), SDA (signal - data), and SCL (signal - clock). You need to solder wires to these 
+pins, and connect them to the corresponding pins on the Thing. See figure.
+<img src="/_images/tutorial_iot/pressure.JPG" alt="Drawing" style="height: 400px;" /></p>
+
+<h3 id="arduino-sketch">Arduino Sketch</h3>
+<p>For this particular sensor, you need to download <a href="https://github.com/sparkfun/SparkFun_MPL3115A2_Breakout_Arduino_Library/archive/master.zip">its library</a>, unzip the file, and move the 
+unzipped folder to <strong>%myDocuments%/Arduino/libraries</strong>. Restart Arduino IDE, check to see if you have 
+<strong>SparkFun MPL3115A2 Altitude and Pressure Sensor Breakout</strong> under <strong>File&gt;Examples</strong>. If so, you have
+successfully installed the libraries needed to run this sensor. For other sensors, the same precedure
+should apply.</p>
+
+<p><img src="/_images/tutorial_iot/pressuresensorlib.png" alt="Drawing" style="height: 400px;" /></p>
+
+<p>Now in Arduino IDE, open a new sketch, compile and upload the following code:</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+</pre></td><td class="code"><pre>  <span class="cp">#include &lt;Wire.h&gt;
+</span>  <span class="cp">#include &lt;ESP8266WiFi.h&gt;
+</span>  <span class="cp">#include &lt;BlynkSimpleEsp8266.h&gt;
+</span>  <span class="cp">#include "SparkFunMPL3115A2.h"
+</span>  
+  <span class="c1">// You should get Auth Token in the Blynk App.</span>
+  <span class="c1">// Go to the Project Settings (nut icon).</span>
+  <span class="kt">char</span> <span class="n">auth</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"***"</span><span class="p">;</span> <span class="c1">// ***Type in your Blynk Token</span>
+  
+  <span class="c1">// Your WiFi credentials.</span>
+  <span class="c1">// Set password to "" for open networks.</span>
+  <span class="kt">char</span> <span class="n">ssid</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"***"</span><span class="p">;</span> <span class="o">***</span><span class="n">your</span> <span class="n">wifi</span> <span class="n">name</span>
+  <span class="kt">char</span> <span class="n">pass</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"***"</span><span class="p">;</span> <span class="o">***</span><span class="n">and</span> <span class="n">password</span>
+  
+  <span class="c1">// pressure</span>
+  <span class="n">MPL3115A2</span> <span class="n">myPressure</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">pressure</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">tempf</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  
+  <span class="kt">void</span> <span class="nf">setup</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">Wire</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span>        <span class="c1">// Join i2c bus</span>
+    <span class="n">myPressure</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="c1">// Get sensor online</span>
+  
+    <span class="c1">// Configure the sensor</span>
+    <span class="c1">//myPressure.setModeAltimeter(); // Measure altitude above sea level in meters</span>
+    <span class="n">myPressure</span><span class="p">.</span><span class="n">setModeBarometer</span><span class="p">();</span> <span class="c1">// Measure pressure in Pascals from 20 to 110 kPa</span>
+  
+    <span class="n">myPressure</span><span class="p">.</span><span class="n">setOversampleRate</span><span class="p">(</span><span class="mi">7</span><span class="p">);</span> <span class="c1">// Set Oversample to the recommended 128</span>
+    <span class="n">myPressure</span><span class="p">.</span><span class="n">enableEventFlags</span><span class="p">();</span> <span class="c1">// Enable all three pressure and temp event flags</span>
+  
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">ssid</span><span class="p">,</span> <span class="n">pass</span><span class="p">);</span>
+  <span class="p">}</span>
+  
+  <span class="kt">void</span> <span class="nf">loop</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">run</span><span class="p">();</span>
+    <span class="n">getPressure</span><span class="p">();</span>
+  <span class="p">}</span>
+  
+  <span class="kt">void</span> <span class="nf">getPressure</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">pressure</span> <span class="o">=</span> <span class="n">myPressure</span><span class="p">.</span><span class="n">readPressure</span><span class="p">();</span>
+    <span class="n">tempf</span> <span class="o">=</span> <span class="n">myPressure</span><span class="p">.</span><span class="n">readTempF</span><span class="p">();</span>
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">virtualWrite</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tempf</span><span class="p">);</span>
+    <span class="n">Blynk</span><span class="p">.</span><span class="n">virtualWrite</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">pressure</span><span class="p">);</span>
+  <span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Following is a brief explanation of this code:</p>
+
+<ul>
+  <li>Line 1: <strong>Wire.h</strong> is necessary to work with the sensor (anything connected to SDA/SCL pins)</li>
+  <li>Line 2-3: These are header files for the ESP8266 Wifi shield and Blynk</li>
+  <li>Line 4: Include the library for the pressure sensor (we just downloaded that)</li>
+  <li>Line 8: You should receive a token from Blynk when you create a new project, email this token 
+to yourself and input it here</li>
+  <li>Line 12-13: You (home) wifi name and password</li>
+  <li>Line 19-32: Initialize the board and the sensor, connect to wifi. This block is mandatory.</li>
+  <li>Line 34-38: Keep updating the pressure and forward that to Blynk. This block is mandatory.</li>
+  <li>Line 40-46: Assign values to the global variables <strong>pressure</strong> and <strong>tempf</strong>, and forward
+these values to the virtual pins <strong>0</strong> and <strong>1</strong>.</li>
+  <li><strong>NOTE</strong> If you see the error “the function (getPressure) isn’t declared”, move the <em>getPressure</em> block
+up above the <em>loop</em> block.</li>
+</ul>
+
+<h3 id="blynk-setup">Blynk setup</h3>
+<p>To start</p>
+
+<ul>
+  <li>Create a Blynk account.</li>
+  <li>Create a new project in Blynk, and select the hardware model <strong>SparkFun ESP8266 Thing</strong>.</li>
+  <li>Get Auth Token, and type it into the Arduino Sketch code.</li>
+</ul>
+
+<p>Then in the project, create the following</p>
+
+<ul>
+  <li>A <strong>button</strong>: Set output of the button to “Digital - GP5”, this particular pin correspond to the LED on the Thing board.
+ If you look close enough, you can see “5” next to the LED on the board.</li>
+  <li>Two <strong>value displays</strong>: Set the inputs to “Virtual - V0” and “Virtual - V1”, respectively. If necessary, you can also
+come back to fine tune the value range.</li>
+</ul>
+
+<p><img src="/_images/tutorial_iot/blynkinterface.PNG" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/button.PNG" alt="Drawing" style="height: 400px;" />
+<img src="/_images/tutorial_iot/display.PNG" alt="Drawing" style="height: 400px;" /></p>
+
+<p>That’s about it! Now turn on the Thing and hit the run button on Blynk. You should be able to (1) see the current room
+temprature (give it some time to converge) and the pressure, and (2) turn on the LED by clicking the button in Blynk.</p>
+
+<p><strong>Hint</strong>: Sometimes the Blynk server can be slow, or even unavailable. You can turn the Thing off and on to get back
+wifi connection.</p>
+
+:ET
