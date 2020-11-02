@@ -101,11 +101,15 @@ header {
 	align-items: center;
 }
 main {
-  	position: relative;
-    top: 50px;
+	position: fixed;
+	text-align: center;
+	top: 50px;
+	bottom: 100px;
 	padding: 0 15px;
-	max-width: $content-width;
+	width: 100%;
 	margin: 0 auto;
+	overflow: auto;
+	clear: left;
 }
 time {
 	color: #898989;
@@ -222,14 +226,11 @@ footer {
 }
 
 .talk-container {
-	//width: 100%;
 	height: 150px;
-	margin: auto;
-	padding: 10px;
+	margin: 10px;
 }
 .talk-container img {
-	//width: 15%;
-	width: 10%;
+	height: 100%;
 	float: left;
 	margin-right: 20px;
 }

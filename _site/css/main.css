@@ -42,7 +42,7 @@ a:hover { color: #222222; }
 
 header { background: #ffffff; padding: 0px 15px; text-align: center; margin: 50px 0 0; height: 50vh; display: flex; justify-content: center; align-items: center; }
 
-main { position: relative; top: 50px; padding: 0 15px; max-width: 90%; margin: 0 auto; }
+main { position: fixed; text-align: center; top: 50px; bottom: 100px; padding: 0 15px; width: 100%; margin: 0 auto; overflow: auto; clear: left; }
 
 time { color: #898989; }
 
@@ -81,9 +81,9 @@ footer img { margin-top: 25px; }
 
 #news { font-size: 100%; width: 50%; float: left; padding: 10px 0 0 0; }
 
-.talk-container { height: 150px; margin: auto; padding: 10px; }
+.talk-container { height: 150px; margin: 10px; }
 
-.talk-container img { width: 10%; float: left; margin-right: 20px; }
+.talk-container img { height: 100%; float: left; margin-right: 20px; }
 
 .talk-abstract { margin-bottom: 10px; padding: 10px; height: 150px; background-color: #EDEDED; }
 
