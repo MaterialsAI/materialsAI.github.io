@@ -1,8 +1,8 @@
 ---
 name: Hailong Chen
-position: Assistant Professor, University of Kentucky
+position: Assistant Professor, Mechanical Engineering, University of Kentucky
 link: "megroup.engr.uky.edu/"
-categories: faculty
+categories: faculty, workshop
 image: Hailong.jpg
 project: "Multiscale multiphysics modeling"
 ---

@@ -1,8 +1,8 @@
 ---
 name: Houlong Zhuang
-position: Assistant Professor, ASU
+position: Assistant Professor, Materials Science, ASU
 link: "zhuang.engineering.asu.edu/people/"
-categories: faculty
+categories: faculty workshop
 image: Zhuang.jpg
 project: "catalysis, lightweight metal alloys, two-dimensional materials, and solid/liquid interfaces"
 ---

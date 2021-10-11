@@ -1,8 +1,8 @@
 ---
 name: Pejman Tahmasebi
-position: Assistant Professor, University of Wyoming
+position: Assistant Professor, Petroleum Engineering, University of Wyoming
 link: "www.uwyo.edu/pejman/"
-categories: faculty
+categories: faculty, workshop
 image: pejman.jpg
 project: "Porous media modeling"
 ---

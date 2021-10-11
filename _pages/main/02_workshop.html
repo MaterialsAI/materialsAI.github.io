@@ -1,0 +1,143 @@
+---
+title: Workshop
+layout: page
+permalink: /workshop/
+published: true
+date: 2021-10-09
+category: header
+---
+<div id="workshop">
+    <h1>NSF Workshop on AI for 4D Materials Discovery</h1>
+
+    <h3><b>Time</b>: 8am-12pm MST, Oct. 21 and Oct. 22, 2021</h3>
+
+    <h3><b>Location</b>: Zoom and Gather.Town links TBD</h3>
+
+<!--<p><b>Background</b>: Material systems in real world applications have-->
+<!--coupled, partially known, and stochastic dynamics on multiple length-->
+<!--and time scales driven by a variety of external stimuli. These-->
+<!--properties make the model-design-validation closed loop extremely-->
+<!--expensive to execute for materials discovery. On the other hand,-->
+<!--machine learning/AI techniques have shown promising generalization-->
+<!--performance at learning reduced-order representations for predicting-->
+<!--dynamics. Yet their merits at solving real-world materials challenges-->
+<!--    are untested.</p>-->
+
+<!--<p><b>Objectives</b>: To understand the nature of existing challenges in-->
+<!--modeling, designing, and manufacturing new materials in critical-->
+<!--applications of national interests (e.g., semiconductors and energy-->
+<!--materials). And to derive the fundamental machine learning, AI, and-->
+<!--computational needs from these challenges.</p>-->
+
+
+
+    <div class="workshop-topic">
+        <h3><b>Keynote Speakers:</b></h3>
+        <!--    <b>Future Talks</b><br>-->
+        {% for people in site.posts %}
+        {% if people.categories contains 'keynote' %}
+        <div class="participant">
+            {% if people.image %}
+            <img src="{{ site.url }}/_images/people/{{ people.image}}">
+            {% else %}
+            <img src="{{ site.url }}/_images/people/missing_people.png">
+            {% endif %}
+            <br><b><a href="http://{{ people.link }}">{{ people.name }}</a></b><br> {{ people.position }}<br>
+            <!--        <b>Research Interests:</b> {{ people.project }}-->
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+
+    <div class="workshop-topic">
+        <h3><b>Schedule:</b></h3>
+        <style type="text/css">
+            .tg  {border-collapse:collapse;border-spacing:0;}
+            .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+                overflow:hidden;padding:10px 5px;word-break:normal;}
+            .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+                font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+            .tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
+            .tg .tg-0lax{text-align:left;vertical-align:top}
+        </style>
+        <table class="tg">
+            <thead>
+            <tr>
+                <th class="tg-0pky"></th>
+                <th class="tg-0pky"><span style="font-weight:bold">Oct. 21</span></th>
+                <th class="tg-0pky"><span style="font-weight:bold">Oct. 22</span></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td class="tg-0pky"><span style="font-weight:bold">7:30-8:00AM</span></td>
+                <td class="tg-0pky">Breakfast/Lunch</td>
+                <td class="tg-0pky">Breakfast/Lunch</td>
+            </tr>
+            <tr>
+                <td class="tg-0pky"><span style="font-weight:bold">8:00-8:30AM</span></td>
+                <td class="tg-0pky">Opening</td>
+                <td class="tg-0pky">Keynote 3</td>
+            </tr>
+            <tr>
+                <td class="tg-0pky"><span style="font-weight:bold">8:35-9:05AM</span></td>
+                <td class="tg-0pky">Keynote 1</td>
+                <td class="tg-0pky">Keynote 4</td>
+            </tr>
+            <tr>
+                <td class="tg-0lax"><span style="font-weight:bold">9:10-9:40AM</span></td>
+                <td class="tg-0lax">Keynote 2</td>
+                <td class="tg-0lax">Keynote 5</td>
+            </tr>
+            <tr>
+                <td class="tg-0lax"><span style="font-weight:bold">9:45-10:00AM</span></td>
+                <td class="tg-0lax">Coffee Break</td>
+                <td class="tg-0lax">Coffee Break</td>
+            </tr>
+            <tr>
+                <td class="tg-0lax"><span style="font-weight:bold">10:05-11:30AM</span></td>
+                <td class="tg-0lax">Round Table: 4D Materials Challenges</td>
+                <td class="tg-0lax">Round Table: Challenges in Applying AI to Materials  </td>
+            </tr>
+            <tr>
+                <td class="tg-0lax"><span style="font-weight:bold">11:30AM-12PM</span></td>
+                <td class="tg-0lax">Report 1</td>
+                <td class="tg-0lax">Report 2</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="workshop-topic">
+        <h3><b>Participants:</b></h3>
+        <!--    <b>Future Talks</b><br>-->
+        {% for people in site.posts %}
+        {% if people.categories contains 'workshop' %}
+        <div class="participant">
+            {% if people.image %}
+            <img src="{{ site.url }}/_images/people/{{ people.image}}">
+            {% else %}
+            <img src="{{ site.url }}/_images/people/missing_people.png">
+            {% endif %}
+            <br><b><a href="http://{{ people.link }}">{{ people.name }}</a></b><br> {{ people.position }}<br>
+    <!--        <b>Research Interests:</b> {{ people.project }}-->
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>

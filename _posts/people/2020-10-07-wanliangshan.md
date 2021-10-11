@@ -1,8 +1,8 @@
 ---
 name: Wanliang Shan
-position: Assistant Professor, Syracuse University
+position: Assistant Professor, Mechanical Engineering, Syracuse University
 link: "srg.syr.edu/"
-categories: faculty
+categories: faculty workshop
 image: wanliang.jpg
 project: "Smart, Hybrid, Active and Nature-inspired Materials, Mechanics, and Machines"
 ---

@@ -1,8 +1,8 @@
 ---
 name: Yi Ren
-position: Assistant Professor, ASU
+position: Assistant Professor, Mechanical Engineering, ASU
 link: "designinformaticslab.github.io/"
-categories: faculty
+categories: faculty workshop
 image: yren32.png
 project: "Optimization, Machine Learning"
 ---
