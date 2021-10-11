@@ -36,7 +36,7 @@ category: header
         <!--    <b>Future Talks</b><br>-->
         {% for people in site.posts %}
         {% if people.categories contains 'keynote' %}
-        <div class="participant">
+        <div class="member">
             {% if people.image %}
             <img src="{{ site.url }}/_images/people/{{ people.image}}">
             {% else %}
@@ -128,7 +128,7 @@ category: header
         <!--    <b>Future Talks</b><br>-->
         {% for people in site.posts %}
         {% if people.categories contains 'workshop' %}
-        <div class="participant">
+        <div class="member">
             {% if people.image %}
             <img src="{{ site.url }}/_images/people/{{ people.image}}">
             {% else %}
