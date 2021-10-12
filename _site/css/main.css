@@ -93,7 +93,7 @@ footer img { margin-top: 25px; }
 
 .topic { float: left; width: 100%; margin-bottom: 10px; }
 
-.workshop-topic { width: 100%; margin: 0 auto; margin-bottom: 10px; }
+.workshop-topic { width: 100%; margin: 0 auto; margin-bottom: 10px; float: left; }
 
 #slides { font-size: 100%; margin-top: 20px; float: left; width: 100%; }
 
