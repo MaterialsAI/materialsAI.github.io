@@ -101,12 +101,12 @@ header {
 	align-items: center;
 }
 main {
-	position: fixed;
+	position: relative;
 	text-align: center;
 	top: 50px;
 	bottom: 100px;
 	padding: 0 15px;
-	width: 100%;
+	width: 90%;
 	margin: 0 auto;
 	overflow: auto;
 	clear: left;
@@ -205,7 +205,7 @@ footer {
 	z-index: 2;
 	border-top: 2px solid lighten($light, 30%);
   	img {
-  		margin-top: 25px;
+  		margin-top: 10px;
 	}
 }
 
@@ -305,15 +305,15 @@ footer {
 }
 
 .member {
-  height: 360px;
-  width: 240px;
+  height: 320px;
+  width: 180px;
   float: left;
   margin: 5px;
   padding: 10px;
   text-align: center;
   background-color: #EDEDED;
   img {
-	height: 200px;
+	height: 150px;
   }
   //overflow: auto;
 }
@@ -333,7 +333,7 @@ footer {
 }
 
 #workshop {
-	//text-align: center;
+	text-align: center;
 }
 
 .hidden_list {
@@ -351,30 +351,30 @@ article {
   }
 }
 
-table {
-  padding: 0; }
-table tr {
-  border-top: 1px solid #cccccc;
-  background-color: white;
-  margin: 0;
-  padding: 0; }
-table tr:nth-child(2n) {
-  background-color: #f8f8f8; }
-table tr th {
-  font-weight: bold;
-  border: 1px solid #cccccc;
-  text-align: left;
-  margin: 0;
-  padding: 6px 13px; }
-table tr td {
-  border: 1px solid #cccccc;
-  text-align: left;
-  margin: 0;
-  padding: 6px 13px; }
-table tr th :first-child, table tr td :first-child {
-  margin-top: 0; }
-table tr th :last-child, table tr td :last-child {
-  margin-bottom: 0; }
+//table {
+//  padding: 0; }
+//table tr {
+//  border-top: 1px solid #cccccc;
+//  background-color: white;
+//  margin: 0;
+//  padding: 0; }
+//table tr:nth-child(2n) {
+//  background-color: #f8f8f8; }
+//table tr th {
+//  font-weight: bold;
+//  border: 1px solid #cccccc;
+//  text-align: left;
+//  margin: 0;
+//  padding: 6px 13px; }
+//table tr td {
+//  border: 1px solid #cccccc;
+//  text-align: left;
+//  margin: 0;
+//  padding: 6px 13px; }
+//table tr th :first-child, table tr td :first-child {
+//  margin-top: 0; }
+//table tr th :last-child, table tr td :last-child {
+//  margin-bottom: 0; }
 
 //td{
 //  padding-right: 10px;
@@ -382,3 +382,39 @@ table tr th :last-child, table tr td :last-child {
 //  border-right: 2px solid #aaaaaa;
 //}ff
 
+
+table tr th {background:#222; color:#fff; padding:0; border:#111 solid 1px;  text-align: center; font-weight: bold;}
+table tr td {border:1px #ccc solid; padding:5px;}
+table tr td.rightright {background: #eee;}
+table tr td h4 {margin:0; padding:0; font-weight:normal;}
+
+//#from here => http://net.tutsplus.com/tutorials/other/building-a-forum-from-scratch-with-ruby-on-rails/
+
+table {
+	margin-bottom: 2em;
+	width: 100%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+th {
+	border-bottom: 2px solid #ccc;
+	font-weight: bold;
+	text-align: left;
+}
+td { border-bottom: 1px solid #ddd; }
+caption, th, td {
+	padding: 4px 10px 4px 0;
+}
+caption {
+	background: #f1f1f1;
+	padding: 10px 0;
+	margin-bottom: 1em;
+}
+
+tr,td,th {
+	vertical-align: middle;
+}
+
+/* Use this if you use span-x classes on th/td. */
+table .last { padding-right: 0; }
