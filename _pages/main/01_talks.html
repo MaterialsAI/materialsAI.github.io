@@ -32,7 +32,7 @@ category: header
     {% endfor %}
 
 
-    <b>Previous Talks</b><br>
+    <b>Past Talks</b><br>
     {% for post in site.posts %}
     {% if post.categories contains 'talk-past' %}
     <div class="talk-container">
@@ -48,6 +48,9 @@ category: header
             {{ post.speaker_name }}</a>, {{ post.speaker_school }}<br>
             {% if post.recording %}
             <b>Recording:</b> <a href="{{ post.recording }}">{{ post.recording}}</a> <br>
+            {% endif %}
+            {% if post.slides %}
+            <b>Slides:</b> <a href="{{ post.slides }}">PDF</a> <br>
             {% endif %}
         </div>
     </div>
